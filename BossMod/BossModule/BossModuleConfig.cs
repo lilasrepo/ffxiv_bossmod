@@ -1,0 +1,123 @@
+﻿namespace BossMod;
+
+[ConfigDisplay(Name = "Boss Modules and Radar", Order = 1)]
+public class BossModuleConfig : ConfigNode
+{
+    public enum RadarCloseBehavior
+    {
+        [PropertyDisplay("Open settings dialog")]
+        Prompt,
+        [PropertyDisplay("Hide radar")]
+        DisableRadar,
+        [PropertyDisplay("Disable current module (and hide radar)")]
+        DisableActiveModule,
+        [PropertyDisplay("Disable current module and all modules in the same category")]
+        DisableActiveModuleCategory
+    }
+
+    // boss module settings
+    [PropertyDisplay("Allow modules to automatically use actions")]
+    public bool AllowAutomaticActions = true;
+
+    [PropertyDisplay("Allow modules to automatically interact with objects", since: "0.3.5.6")]
+    public bool AllowAutomaticInteract = true;
+
+    [PropertyDisplay("Show testing radar and hint window", tooltip: "Useful for configuring your radar and hint windows without being inside of a boss encounter")]
+    public bool ShowDemo = false;
+
+    [PropertyDisplay("Allow WIP modules", since: "7.5.0.10", tooltip: "WIP modules are unfinished and may have severe bugs. Enable at your own risk.")]
+    public bool AllowIncompleteModules = false;
+
+    [PropertyDisplay("Enable Striking Dummy module during Explorer Mode dungeons", since: "7.5.0.10")]
+    public bool EnableDummyModule = false;
+
+    // radar window settings
+    [SectionStart]
+    [PropertyDisplay("Enable radar")]
+    public bool Enable = true;
+
+    [PropertyDisplay("Close button behavior")]
+    public RadarCloseBehavior CloseBehavior = RadarCloseBehavior.Prompt;
+
+    [PropertyDisplay("Lock radar and hint window movement and mouse interaction")]
+    public bool Lock = false;
+
+    [PropertyDisplay("Transparent radar window background", tooltip: "Removes the black window around the radar; this will not work if you move the radar to a different monitor")]
+    public bool TrishaMode = false;
+
+    [PropertyDisplay("Add opaque background to the arena in the radar")]
+    public bool OpaqueArenaBackground = false;
+
+    [PropertyDisplay("Show outlines and shadows on various radar markings")]
+    public bool ShowOutlinesAndShadows = false;
+
+    [PropertyDisplay("Radar arena scale factor", tooltip: "Scale of the arena inside of the radar window")]
+    [PropertySlider(0.1f, 10, Speed = 0.1f, Logarithmic = true)]
+    public float ArenaScale = 1;
+
+    [PropertyDisplay("Radar element thickness scale factor", tooltip: "Globally scales the outline thickness of radar elements")]
+    [PropertySlider(0.1f, 10, Speed = 0.1f, Logarithmic = true)]
+    public float ThicknessScale = 1;
+
+    [PropertyDisplay("Rotate radar to match camera orientation")]
+    public bool RotateArena = true;
+
+    [PropertyDisplay("Give radar extra space for rotations", tooltip: "If you are using the above setting, this gives the radar extra space on the sides before the edges are clipped in order to account for rotating your camera during an encounter")]
+    public bool AddSlackForRotations = true;
+
+    [PropertyDisplay("Show arena border in radar")]
+    public bool ShowBorder = true;
+
+    [PropertyDisplay("Change arena border color if player is at risk", tooltip: "Changes the white border to red when you are standing somewhere you are likely to be hit by a mechanic")]
+    public bool ShowBorderRisk = true;
+
+    [PropertyDisplay("Show cardinal direction names on radar")]
+    public bool ShowCardinals = false;
+
+    [PropertyDisplay("Cardinal direction font size")]
+    [PropertySlider(0.1f, 100, Speed = 1)]
+    public float CardinalsFontSize = 17;
+
+    [PropertyDisplay("Show waymarks on radar")]
+    public bool ShowWaymarks = false;
+
+    [PropertyDisplay("Show signs on radar ('attack', 'bind', 'ignore', and shape markers)", since: "0.4.10.0")]
+    public bool ShowSigns = false;
+
+    [PropertyDisplay("Show melee range indicator on radar", since: "7.5.1.2")]
+    public bool ShowMeleeRange = false;
+
+    [PropertyDisplay("Always show all alive party members")]
+    public bool ShowIrrelevantPlayers = false;
+
+    [PropertyDisplay("Allow drawing non-party players on radar", tooltip: "This option only affects certain categories of content, like adventuring forays.", depends: nameof(ShowIrrelevantPlayers))]
+    public bool ShowAllPlayers = true;
+
+    [PropertyDisplay("Show role-based colors on otherwise uncolored players in the radar")]
+    public bool ColorPlayersBasedOnRole = false;
+
+    [PropertyDisplay("Always show focus targeted party member")]
+    public bool ShowFocusTargetPlayer = false;
+
+    // hint window settings
+    [SectionStart]
+    [PropertyDisplay("Show text hints in separate window", tooltip: "Separates the radar window from the hints window, allowing you to reposition the hints window")]
+    public bool HintsInSeparateWindow = false;
+
+    [PropertyDisplay("Show mechanic sequence and timer hints")]
+    public bool ShowMechanicTimers = true;
+
+    [PropertyDisplay("Show raidwide hints")]
+    public bool ShowGlobalHints = true;
+
+    [PropertyDisplay("Show player hints and warnings")]
+    public bool ShowPlayerHints = true;
+
+    // misc. settings
+    [SectionStart]
+    [PropertyDisplay("Show movement hints in world", tooltip: "Not used very much, but can show you arrows in the game world to indicate where to move for certain mechanics")]
+    public bool ShowWorldArrows = false;
+
+    public List<string> DisabledModules = [];
+    public List<BossModuleInfo.Category> DisabledCategories = [];
+}

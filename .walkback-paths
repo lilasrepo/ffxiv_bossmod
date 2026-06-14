@@ -1,0 +1,37 @@
+# Auto-learned walkback paths — see SKILL.md.
+# Auto-promoted by plugin_update on 2026-05-30
+.tools/sed_bindings.py
+.tools/sed_iter4.py
+UIDev/ConfigTest.cs
+UIDev/OfflineTextureProvider.cs
+UIDev/UITest.cs
+UIDev/UITestWindow.cs
+BossMod/Replay/ReplayManager.cs
+# Auto-promoted by plugin_update on 2026-06-03
+BossMod/AI/AIBehaviour.cs
+BossMod/AI/AIConfig.cs
+BossMod/AI/AIController.cs
+BossMod/AI/AIManager.cs
+# Auto-promoted by plugin_update on 2026-06-13
+BossMod/BossMod.csproj
+BossMod/AI/AIWindow.cs
+BossMod/Framework/DTRProvider.cs
+BossMod/Autorotation/MiscAI/Multibox.cs
+# Pinned 2026-06-14 (ROOT CAUSE): ClientStructsEx.cs BaseMoveSpeed offset 0x7118 (game-7.5) -> 0x7108
+# (game-7.1, = TC_ok's empirical offset). On 7.1, reading 0x7118 returns ~0 -> ClientState.MoveSpeed = 0
+# -> NormalMovement passes gMultiplier = 1/0 = +Inf to ThetaStar -> every path's PathLeeway goes negative
+# -> the pathfinder scores all goal cells WORSE than start and returns no destination = "won't approach"
+# + jitter under AutoDuty with BossMod AI off. THIS was the actual cause of the whole saga (the earlier
+# NormalMovement async->sync and MovementOverride 0x94 theories were both wrong). Runtime-verified
+# 2026-06-14 (operator: "功能正常"). Must survive refreshes or the regression returns.
+# See project_bossmod_ai_walkback_recipe memory + doc/GAME_PATCH_WALKFORWARD.md §2.1.
+BossMod/Framework/ClientStructsEx.cs
+# Pinned 2026-06-14: MovementOverride.cs RMIWalkDetour kept at TC_ok's struct-free form (NOT a cause of
+# the AutoDuty regression — see ClientStructsEx pin above for the real fix). Upstream HEAD's "add spinning
+# support" (ffe64ca7a) reads MoveControllerSubMemberForMine.Spinning at offset 0x94 (game-7.5-derived,
+# UNVERIFIED on TC game 7.1 = category-C). Kept reverted only to avoid an unverified 7.5 offset for the
+# niche Alzadaal's Legacy auto-spin feature (dropped as a B1). Restore the HEAD Spinning block + runtime-
+# verify 0x94 on 7.1 only if that one boss ever matters.
+# NOTE: NormalMovement.cs is NO LONGER pinned — restored to HEAD's async BuildAsync per operator decision
+# 2026-06-14, re-verified runtime-OK (async + BaseMoveSpeed fix = smooth approach, no jitter on AutoDuty Range=Any).
+BossMod/Framework/MovementOverride.cs
