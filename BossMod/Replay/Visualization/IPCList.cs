@@ -28,15 +28,8 @@ sealed class IPCList(Replay replay, Replay.Encounter? enc, IEnumerable<WorldStat
     private List<(int index, NetworkState.OpServerIPC op, PacketDecoder.TextNode data)>? _nodes;
     private readonly HashSet<PacketID> _filteredPackets = [
         PacketID.ActorMove,
-        PacketID.ActorControlSelf,
         PacketID.UpdateHate,
         PacketID.UpdateHater,
-        PacketID.EffectResult1,
-        PacketID.ActionEffect1,
-        PacketID.ActionEffect8,
-        PacketID.EffectResultBasic1,
-        PacketID.StatusEffectList,
-        PacketID.StatusEffectListDouble,
         PacketID.UpdateHpMpTp,
         PacketID.ActorSetPos,
         PacketID.UpdateClassInfo,

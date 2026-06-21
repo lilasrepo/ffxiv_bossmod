@@ -3,7 +3,7 @@
     "BossMod/DefaultRotationPresets.json": 1,
     "BossMod/Framework/MultiboxManager.cs": 1,
     "BossMod/Framework/Service.cs": 1,
-    "BossMod/Replay/ReplayManagementWindow.cs": 1,
+    "BossMod/Replay/ReplayManagementConfig.cs": 1,
     "BossMod/Replay/Visualization/IPCList.cs": 1,
     "BossMod/Replay/Visualization/OpList.cs": 1,
     "BossMod/packages.lock.json": 1

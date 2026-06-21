@@ -7,6 +7,14 @@ UIDev/OfflineTextureProvider.cs
 UIDev/UITest.cs
 UIDev/UITestWindow.cs
 BossMod/Replay/ReplayManager.cs
+# Pinned 2026-06-19: ReplayManagementConfig.cs defines TC's inlined replay-history (record struct
+# ReplayMemory + RememberReplays/RememberReplayTimes/ReplayHistory fields) that the already-pinned
+# ReplayManager.cs depends on. Upstream refactored this into a separate ReplayHistory.cs class (json
+# persistence + Service.PluginLog) — merging that drops TC's config fields + ReplayMemory and the
+# pinned ReplayManager.cs no longer compiles (CS1061 ReplayHistory/RememberReplay*). Pin keeps TC's
+# version; the orphan upstream ReplayHistory.cs must still be deleted each refresh (B1, no TC content
+# to pin against). See FORWARD_PORT_REFERENCE.md bossmod entry.
+BossMod/Replay/ReplayManagementConfig.cs
 # Auto-promoted by plugin_update on 2026-06-03
 BossMod/AI/AIBehaviour.cs
 BossMod/AI/AIConfig.cs
@@ -35,3 +43,5 @@ BossMod/Framework/ClientStructsEx.cs
 # NOTE: NormalMovement.cs is NO LONGER pinned — restored to HEAD's async BuildAsync per operator decision
 # 2026-06-14, re-verified runtime-OK (async + BaseMoveSpeed fix = smooth approach, no jitter on AutoDuty Range=Any).
 BossMod/Framework/MovementOverride.cs
+# Auto-promoted by plugin_update on 2026-06-19
+BossMod/Replay/ReplayManagementWindow.cs
