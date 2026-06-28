@@ -45,3 +45,10 @@ BossMod/Framework/ClientStructsEx.cs
 BossMod/Framework/MovementOverride.cs
 # Auto-promoted by plugin_update on 2026-06-19
 BossMod/Replay/ReplayManagementWindow.cs
+# Pinned 2026-06-28: ReplayHistory.cs kept as a MINIMAL TC stub (only GetStorageDir()).
+# Refresh 9ef2e213 newly couples ObstacleMapManager -> ReplayHistory.GetStorageDir(), so it can no
+# longer be deleted as a pure orphan. Upstream's full file also declares the ReplayMemory record
+# (CS0101 vs TC's pinned ReplayManagementConfig.cs) + Load/Save via Service.PluginLog. TC adopts
+# upstream's ObstacleMapManager/DeveloperConfig/ObstacleMapDatabase storage refactor but keeps this
+# file minimal so the duplicate can't return. See FORWARD_PORT_REFERENCE.md bossmod entry.
+BossMod/Replay/ReplayHistory.cs
