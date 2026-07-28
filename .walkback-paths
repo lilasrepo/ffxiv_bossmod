@@ -1,11 +1,5 @@
 # Auto-learned walkback paths — see SKILL.md.
 # Auto-promoted by plugin_update on 2026-05-30
-.tools/sed_bindings.py
-.tools/sed_iter4.py
-UIDev/ConfigTest.cs
-UIDev/OfflineTextureProvider.cs
-UIDev/UITest.cs
-UIDev/UITestWindow.cs
 BossMod/Replay/ReplayManager.cs
 # Pinned 2026-06-19: ReplayManagementConfig.cs defines TC's inlined replay-history (record struct
 # ReplayMemory + RememberReplays/RememberReplayTimes/ReplayHistory fields) that the already-pinned

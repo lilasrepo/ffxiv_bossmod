@@ -1,4 +1,4 @@
-﻿using ImGuiNET;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
@@ -43,7 +43,7 @@ public static class UIMisc
     {
         var wrap = icon?.GetWrapOrDefault();
         if (wrap != null)
-            ImGui.Image(wrap.ImGuiHandle, size);
+            ImGui.Image(wrap.Handle, size);
         else
             ImGui.Dummy(size);
     }
@@ -58,7 +58,7 @@ public static class UIMisc
         if (wrap != null)
         {
             Vector4 tintColor = state ? new(1f, 1f, 1f, 1f) : new(0.5f, 0.5f, 0.5f, 0.85f);
-            ImGui.Image(wrap.ImGuiHandle, size, Vector2.Zero, Vector2.One, tintColor);
+            ImGui.Image(wrap.Handle, size, Vector2.Zero, Vector2.One, tintColor);
         }
         else
         {

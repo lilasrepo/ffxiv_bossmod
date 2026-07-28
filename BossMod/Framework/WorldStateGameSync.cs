@@ -119,7 +119,7 @@ sealed class WorldStateGameSync : IWorldStateGameSync
         );
 
         // porting-note: HEAD sigs target game 7.5; replaced with walk-back-verified game 7.1 sigs (see TC_porting/ffxiv_bossmod/BossMod/Framework/WorldStateGameSync.cs).
-        _processPacketActorCastHook = Service.Hook.HookFromSignature<ProcessPacketActorCastDelegate>("40 56 41 56 48 81 EC ?? ?? ?? ?? 48 8B F2", ProcessPacketActorCastDetour);
+        _processPacketActorCastHook = Service.Hook.HookFromSignature<ProcessPacketActorCastDelegate>("40 53 57 48 81 EC ?? ?? ?? ?? 48 8B FA 8B D1", ProcessPacketActorCastDetour);
         _processPacketActorCastHook.Enable();
         Service.Log($"[WSG] ProcessPacketActorCast address = 0x{_processPacketActorCastHook.Address:X}");
 
@@ -137,7 +137,7 @@ sealed class WorldStateGameSync : IWorldStateGameSync
         Service.Log($"[WSG] ProcessPacketActorControl address = 0x{_processPacketActorControlHook.Address:X}");
 
         // walk-back sig (stack alloc 0x58 vs 7.5's 0x68)
-        _processPacketNpcYellHook = Service.Hook.HookFromSignature<ProcessPacketNpcYellDelegate>("48 83 EC 58 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 0F 10 41 10", ProcessPacketNpcYellDetour);
+        _processPacketNpcYellHook = Service.Hook.HookFromSignature<ProcessPacketNpcYellDelegate>("48 83 EC 68 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 0F 10 41 10", ProcessPacketNpcYellDetour);
         _processPacketNpcYellHook.Enable();
         Service.Log($"[WSG] ProcessPacketNpcYell address = 0x{_processPacketNpcYellHook.Address:X}");
 
@@ -176,12 +176,12 @@ sealed class WorldStateGameSync : IWorldStateGameSync
         Service.Log($"[WSG] ProcessPacketRSVData address = 0x{_processPacketRSVDataHook.Address:X}");
 
         // walk-back sig (offset 0x46 vs 7.5's 0x47 in 0F B6 47 28 / 0F B6 46 28)
-        _processSystemLogMessageHook = Service.Hook.HookFromSignature<ProcessSystemLogMessageDelegate>("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 0F B6 46 28", ProcessSystemLogMessageDetour);
+        _processSystemLogMessageHook = Service.Hook.HookFromSignature<ProcessSystemLogMessageDelegate>("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 0F B6 47 28", ProcessSystemLogMessageDetour);
         _processSystemLogMessageHook.Enable();
         Service.Log($"[WSG] ProcessSystemLogMessage address = 0x{_processSystemLogMessageHook.Address:X}");
 
         // walk-back sig: register-spec (0F B7 4E 10 / 48 8D 56 12) differs from 7.5 (0F B7 4F 10 / 48 8D 57 12)
-        _processPacketFateInfoHook = Service.Hook.HookFromSignature<ProcessPacketFateInfoDelegate>("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 0F B7 4E 10 48 8D 56 12 41 B8 ?? ?? ?? ??", ProcessPacketFateInfoDetour);
+        _processPacketFateInfoHook = Service.Hook.HookFromSignature<ProcessPacketFateInfoDelegate>("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 0F B7 4F 10 48 8D 57 12 41 B8", ProcessPacketFateInfoDetour);
         _processPacketFateInfoHook.Enable();
         Service.Log($"[WSG] ProcessPacketFateInfo address = 0x{_processPacketFateInfoHook.Address:X}");
 
@@ -472,7 +472,7 @@ sealed class WorldStateGameSync : IWorldStateGameSync
         var castInfo = chr != null ? chr->GetCastInfo() : null;
         if (castInfo != null)
         {
-            var curCast = castInfo->IsCasting != 0
+            var curCast = castInfo->IsCasting
                 ? new ActorCastInfo
                 {
                     Action = new((ActionType)castInfo->ActionType, castInfo->ActionId),
@@ -481,7 +481,7 @@ sealed class WorldStateGameSync : IWorldStateGameSync
                     Location = _lastCastPositions.GetValueOrDefault(act.InstanceID, castInfo->TargetLocation),
                     ElapsedTime = castInfo->CurrentCastTime,
                     TotalTime = castInfo->BaseCastTime,
-                    Interruptible = castInfo->Interruptible != 0
+                    Interruptible = castInfo->Interruptible
                 } : null;
             UpdateActorCastInfo(act, curCast);
         }
@@ -595,7 +595,7 @@ sealed class WorldStateGameSync : IWorldStateGameSync
         {
             // in normal mode, the primary data source is playerstate
             var ui = UIState.Instance();
-            if (ui->PlayerState.IsLoaded != 0)
+            if (ui->PlayerState.IsLoaded)
             {
                 var inCutscene = Service.Condition[ConditionFlag.OccupiedInCutSceneEvent] || Service.Condition[ConditionFlag.WatchingCutscene78] || Service.Condition[ConditionFlag.Occupied33] || Service.Condition[ConditionFlag.BetweenAreas] || Service.Condition[ConditionFlag.OccupiedInQuestEvent];
                 player = new(ui->PlayerState.ContentId, ui->PlayerState.EntityId, inCutscene, ui->PlayerState.CharacterNameString);

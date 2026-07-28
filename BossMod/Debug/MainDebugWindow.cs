@@ -1,6 +1,6 @@
 ﻿using BossMod.Autorotation;
 using BossMod.Autorotation.xan;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;

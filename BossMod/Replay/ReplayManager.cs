@@ -1,5 +1,5 @@
 ﻿using BossMod.Autorotation;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility.Raii;
 using System.IO;

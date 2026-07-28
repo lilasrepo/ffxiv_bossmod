@@ -1,4 +1,4 @@
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using static FFXIVClientStructs.FFXIV.Client.Game.InstanceContent.InstanceContentDeepDungeon;
@@ -115,61 +115,61 @@ public record class Minimap(DeepDungeonState State, Angle PlayerRotation, int Cu
             }
 
             ImGui.SetCursorPos(pos);
-            ImGui.Image(roomsTex.ImGuiHandle, sizes.Room - new Vector2(highlight ? 2 : 0), new Vector2(xoff, yoff), new Vector2(xoffend, yoffend), tile > 0 ? new(1f) : new(0.6f), highlight ? new(0, 0.6f, 0, 1) : default);
+            ImGui.Image(roomsTex.Handle, sizes.Room - new Vector2(highlight ? 2 : 0), new Vector2(xoff, yoff), new Vector2(xoffend, yoffend), tile > 0 ? new(1f) : new(0.6f), highlight ? new(0, 0.6f, 0, 1) : default);
 
             if (i == playerCell)
             {
                 isValidDestination = false;
                 ImGui.SetCursorPos(pos + (sizes.Room - sizes.RoomHighlight) * 0.5f);
-                ImGui.Image(mapTex.ImGuiHandle, sizes.RoomHighlight, new Vector2(0.2424f, 0.4571f), new Vector2(0.4848f, 0.6857f));
+                ImGui.Image(mapTex.Handle, sizes.RoomHighlight, new Vector2(0.2424f, 0.4571f), new Vector2(0.4848f, 0.6857f));
             }
 
             if (State.Rooms[i].HasFlag(RoomFlags.Home))
             {
                 ImGui.SetCursorPos(pos + (sizes.Room - sizes.HomeIcon) * 0.5f);
-                ImGui.Image(mapTex.ImGuiHandle, sizes.HomeIcon, new Vector2(0.4848f, 0.4571f), new Vector2(0.7272f, 0.6657f));
+                ImGui.Image(mapTex.Handle, sizes.HomeIcon, new Vector2(0.4848f, 0.4571f), new Vector2(0.7272f, 0.6657f));
             }
 
             if (State.Rooms[i].HasFlag(RoomFlags.Passage))
             {
                 ImGui.SetCursorPos(pos + sizes.PoIPadding);
-                ImGui.Image(passageTex.ImGuiHandle, sizes.PointOfInterest);
+                ImGui.Image(passageTex.Handle, sizes.PointOfInterest);
             }
 
             if (State.Rooms[i].HasFlag(RoomFlags.Return))
             {
                 ImGui.SetCursorPos(pos + sizes.PoIPadding);
-                ImGui.Image(returnTex.ImGuiHandle, sizes.PointOfInterest);
+                ImGui.Image(returnTex.Handle, sizes.PointOfInterest);
             }
 
             if (((ushort)State.Rooms[i] & 0x100) != 0)
             {
                 ImGui.SetCursorPos(pos + sizes.PoIPadding);
-                ImGui.Image(votiveTex.ImGuiHandle, sizes.PointOfInterest);
+                ImGui.Image(votiveTex.Handle, sizes.PointOfInterest);
             }
 
             if (chests[i].HasFlag(RoomChest.Bronze))
             {
                 ImGui.SetCursorPos(pos + sizes.TreasurePadding);
-                ImGui.Image(bronzeTex.ImGuiHandle, sizes.Treasure);
+                ImGui.Image(bronzeTex.Handle, sizes.Treasure);
             }
 
             if (chests[i].HasFlag(RoomChest.Silver))
             {
                 ImGui.SetCursorPos(pos + sizes.TreasurePadding + new Vector2(sizes.TreasureAdjustX, 0));
-                ImGui.Image(silverTex.ImGuiHandle, sizes.Treasure);
+                ImGui.Image(silverTex.Handle, sizes.Treasure);
             }
 
             if (chests[i].HasFlag(RoomChest.Gold))
             {
                 ImGui.SetCursorPos(pos + sizes.TreasurePadding + new Vector2(sizes.TreasureAdjustX * 2, 0));
-                ImGui.Image(goldTex.ImGuiHandle, sizes.Treasure);
+                ImGui.Image(goldTex.Handle, sizes.Treasure);
             }
 
             if (i == playerCell)
             {
                 ImGui.SetCursorPos(pos + Sizes.Room * 0.5f);
-                DrawPlayer(ImGui.GetCursorScreenPos(), PlayerRotation, mapTex.ImGuiHandle, sizes);
+                DrawPlayer(ImGui.GetCursorScreenPos(), PlayerRotation, mapTex.Handle, sizes);
             }
 
             ImGui.SetCursorPos(pos);
@@ -191,7 +191,7 @@ public record class Minimap(DeepDungeonState State, Angle PlayerRotation, int Cu
         return dest;
     }
 
-    private static void DrawPlayer(Vector2 center, Angle rotation, nint texHandle, in Size sizes)
+    private static void DrawPlayer(Vector2 center, Angle rotation, ImTextureID texHandle, in Size sizes)
     {
         var cos = -rotation.Cos();
         var sin = rotation.Sin();

@@ -1,6 +1,6 @@
 ﻿using BossMod.Autorotation;
 using BossMod.ReplayVisualization;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using System.Text.Json;

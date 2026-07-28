@@ -1,4 +1,4 @@
-﻿using ImGuiNET;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects;
@@ -51,7 +51,7 @@ public sealed class Service
     public static ImFontPtr IconFontDev = default;
 #pragma warning restore CA2211
 
-    public static unsafe ImFontPtr IconFont => (nint)IconFontDev.NativePtr == 0 ? UiBuilder.IconFont : IconFontDev;
+    public static unsafe ImFontPtr IconFont => (nint)IconFontDev.Handle == 0 ? UiBuilder.IconFont : IconFontDev;
 
     public static bool IsUIDev => PluginInterface == null;
 

@@ -1,6 +1,6 @@
 ﻿using BossMod.AI;
 using BossMod.Autorotation;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
@@ -23,14 +23,14 @@ internal sealed class DTRProvider : IDisposable
         _mgr = manager;
         _ai = ai;
 
-        _autorotationEntry.OnClick = () => _wantOpenPopup = true;
+        _autorotationEntry.OnClick = _ => _wantOpenPopup = true;
         _aiEntry.Tooltip = "Left Click => Toggle Enabled, Right Click => Toggle DrawUI";
 
-        // TODO(api12): API15 added per-click DtrInteractionEvent (with .ClickType); API12's IDtrBarEntry.OnClick is parameterless.
-        // Drop right-click branch — single-button toggle covers the primary use case.
-        _aiEntry.OnClick = () =>
+        // API13 restores IDtrBarEntry.OnClick as Action<DtrInteractionEvent>, so the
+        // right-click branch the API12 tree had to drop is back.
+        _aiEntry.OnClick = ev =>
         {
-            if (false)
+            if (ev.ClickType == MouseClickType.Right)
                 _aiConfig.DrawUI ^= true;
             else
                 _aiConfig.Enabled ^= true;

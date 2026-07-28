@@ -1,5 +1,5 @@
 ﻿using BossMod.Autorotation;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Keys;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using System.Reflection;

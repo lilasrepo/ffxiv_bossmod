@@ -1,5 +1,5 @@
 using BossMod;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game;
 using Dalamud.Interface.ImGuiSeStringRenderer;
 using Dalamud.Interface.Textures;
@@ -209,7 +209,7 @@ internal class OfflineTextureWrap(nint native, int width, int height) : IDalamud
     {
         _resource = view;
     }
-    public OfflineTextureWrap(TextureWrap innerWrap) : this(innerWrap.ImGuiHandle, innerWrap.Width, innerWrap.Height)
+    public OfflineTextureWrap(TextureWrap innerWrap) : this(innerWrap.Handle, innerWrap.Width, innerWrap.Height)
     {
         _resource = innerWrap;
     }

@@ -1,4 +1,4 @@
-﻿using ImGuiNET;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 
 namespace BossMod;
@@ -389,7 +389,7 @@ public abstract class BossModule : IDisposable
                 var pos = Arena.WorldPositionToScreenPosition(actor.Position);
                 var scale = WindowConfig.EffectiveArenaScale * 24;
 
-                ImGui.GetWindowDrawList().AddImage(wrap.ImGuiHandle, pos - new Vector2(scale), pos);
+                ImGui.GetWindowDrawList().AddImage(wrap.Handle, pos - new Vector2(scale), pos);
             }
         }
     }

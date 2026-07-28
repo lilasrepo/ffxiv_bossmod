@@ -1,6 +1,6 @@
 using BossMod;
 using BossMod.Autorotation;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace UIDev;
 
