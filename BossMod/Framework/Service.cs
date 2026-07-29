@@ -1,5 +1,6 @@
 ﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Interface.Windowing;
@@ -42,18 +43,36 @@ public sealed class Service
 
     public static bool IsDev = true;
 
+    public static void ChatMessage(string msg) => ChatGui.Print(msg, "VBM");
+    public static void ChatError(string msg) => ChatGui.PrintError(msg, "VBM");
+
     public static Lumina.GameData LuminaGameData = null!;
     public static Lumina.Excel.ExcelSheet<T>? LuminaSheet<T>() where T : struct, Lumina.Excel.IExcelRow<T> => LuminaGameData.GetExcelSheet<T>();
     public static T? LuminaRow<T>(uint row) where T : struct, Lumina.Excel.IExcelRow<T> => LuminaSheet<T>()?.GetRowOrDefault(row);
     public static ConcurrentDictionary<Lumina.Text.ReadOnly.ReadOnlySeString, Lumina.Text.ReadOnly.ReadOnlySeString> LuminaRSV = []; // TODO: reconsider
 
+    // Upstream types this as DalaMock's IWindowSystem so its test harness can substitute it.
+    // DalaMock publishes net10 assets only and is not referenced here, so the CONCRETE Dalamud
+    // class is used -- and it must stay nullable-concrete because Plugin.cs assigns
+    // `Service.WindowSystem = new("vbm")`, a target-typed new.
     public static WindowSystem? WindowSystem;
+    // Kept only so UIDev/ still compiles; UIDev is not part of the plugin build.
     public static ImFontPtr IconFontDev = default;
 #pragma warning restore CA2211
 
-    public static unsafe ImFontPtr IconFont => (nint)IconFontDev.Handle == 0 ? UiBuilder.IconFont : IconFontDev;
+    // Upstream assigns these inside TickService (Service.IconFont = uiBuilder.FontIcon, etc.), which
+    // this tree drops. Computed, not captured: a ctor-time capture would latch a font before the
+    // atlas is built and would go stale when Dalamud rebuilds it on a scale/DPI change.
+    // Consumers: MiniArena/UIMisc (IconFont), ConfigChangelog (MonoFont), GaugeVisualizer (FontAtlas).
+    // Upstream's Service.FileDialogManager is deliberately absent -- with TickService gone nothing
+    // reads it (TC's pinned ReplayManager.cs uses its own path).
+    public static ImFontPtr IconFont => UiBuilder.IconFont;
+    public static ImFontPtr MonoFont => UiBuilder.MonoFont;
+    public static IFontAtlas FontAtlas => PluginInterface.UiBuilder.FontAtlas;
+
 
     public static bool IsUIDev => PluginInterface == null;
+    public static bool IsMock;   // upstream's DalaMock harness flag; always false here
 
     public static readonly ConfigRoot Config = new();
 

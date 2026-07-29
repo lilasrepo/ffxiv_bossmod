@@ -1,8 +1,8 @@
-using System.IO;
+﻿using System.IO;
 
 namespace BossMod;
 
-// [TC api12] Minimal storage-dir helper. Upstream's full ReplayHistory.cs also declares
+// [TC] Minimal storage-dir helper. Upstream's full ReplayHistory.cs also declares
 // `record struct ReplayMemory` (identical to the one TC's pinned ReplayManagementConfig.cs owns
 // -> CS0101 duplicate) plus Load/Save via Service.PluginLog. TC keeps only GetStorageDir(), the
 // single ReplayHistory member referenced in the tree (ObstacleMapManager). Pinned via
