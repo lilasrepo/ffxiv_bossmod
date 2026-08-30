@@ -1,4 +1,5 @@
-﻿using BossMod.Pathfinding;
+﻿using BossMod.Autorotation.xan;
+using BossMod.Pathfinding;
 using System.Threading.Tasks;
 
 namespace BossMod.Autorotation.MiscAI;
@@ -12,19 +13,20 @@ public sealed class NormalMovement(RotationModuleManager manager, Actor player) 
         Spinning = 2973, // alzadaal's legacy, forced march at 3 units/sec, player can steer left and right
     }
 
-    public enum Track { Destination, Range, Cast, SpecialModes, ForbiddenZoneCushion, DelayMovement }
+    public enum Track { Destination, Range, Cast, SpecialModes, ForbiddenZoneCushion, DelayMovement, SeparateDodgeDelay, DodgeDelayMovement }
     public enum DestinationStrategy { None, Pathfind, Explicit }
     public enum RangeStrategy { Any, MaxRange, GreedGCDExplicit, GreedLastMomentExplicit, GreedAutomatic }
     public enum CastStrategy { Leeway, Explicit, Greedy, FinishMove, DropMove, FinishInstants, DropInstants }
     public enum ForbiddenZoneCushionStrategy { None, Small, Medium, Large }
     public enum SpecialModesStrategy { Automatic, Ignore }
     public enum DelayMovementStrategy { None, Short, Long }
+    public enum SeparateDodgeDelayStrategy { Disabled, Enabled }
 
     public const float GreedTolerance = 0.15f;
 
     public static RotationModuleDefinition Definition()
     {
-        var res = new RotationModuleDefinition("Automatic movement", "Automatically move character based on pathfinding or explicit coordinates.", "AI", "veyn", RotationModuleQuality.Good, new(~0ul), 1000, 1, RotationModuleOrder.Movement, CanUseWhileRoleplaying: true);
+        var res = new RotationModuleDefinition("Automatic movement", "Automatically move character based on pathfinding or explicit coordinates.", "AI", "veyn", RotationModuleQuality.Good, new(~0ul), 1000, 1, RotationModuleOrder.Movement, CanUseWhileRoleplaying: true, PvP: PvPCompatibility.Any);
         res.Define(Track.Destination).As<DestinationStrategy>("Destination", "Destination", 30)
             .AddOption(DestinationStrategy.None, "No automatic movement")
             .AddOption(DestinationStrategy.Pathfind, "Use standard pathfinding to find best position")
@@ -59,6 +61,14 @@ public sealed class NormalMovement(RotationModuleManager manager, Actor player) 
             .AddOption(DelayMovementStrategy.None, "Do not delay movement")
             .AddOption(DelayMovementStrategy.Short, "Delay movement by 0.5s")
             .AddOption(DelayMovementStrategy.Long, "Delay movement by 1s");
+        res.Define(Track.SeparateDodgeDelay).As<SeparateDodgeDelayStrategy>("SeparateDodgeDelay", "Separate Dodge Delay", 8, renderer: typeof(DefaultOffRenderer))
+            .AddOption(SeparateDodgeDelayStrategy.Disabled)
+            .AddOption(SeparateDodgeDelayStrategy.Enabled);
+        res.Define(Track.DodgeDelayMovement).As<DelayMovementStrategy>("DodgeDelayMovement", "Dodge Delay Movement", 7)
+            .AddOption(DelayMovementStrategy.None, "Do not delay dodge movement")
+            .AddOption(DelayMovementStrategy.Short, "Delay dodge movement by 0.5s")
+            .AddOption(DelayMovementStrategy.Long, "Delay dodge movement by 1s")
+            .VisibleWhen(Track.SeparateDodgeDelay, (int)SeparateDodgeDelayStrategy.Enabled);
 
         return res;
     }
@@ -73,6 +83,15 @@ public sealed class NormalMovement(RotationModuleManager manager, Actor player) 
     private NavigationDecision _lastDecision;
 
     private DateTime? TimeToMove;
+    private bool? _delayMovementIsDodge;
+
+    private static float DelaySeconds(DelayMovementStrategy strategy) => strategy switch
+    {
+        DelayMovementStrategy.Short => 0.5f,
+        DelayMovementStrategy.Long => 1.0f,
+        _ => 0f
+    };
+
     private NavigationDecision GetDecision(float speed, float cushionSize)
     {
         if (_decisionTask.IsCompletedSuccessfully)
@@ -98,6 +117,22 @@ public sealed class NormalMovement(RotationModuleManager manager, Actor player) 
         // do nothing if we're already being moved by some other module (i.e. quest battle pathfinding)
         if (Hints.ForcedMovement != null)
             return;
+
+        // lots of assumptions made in this module are broken by being in flight (or diving)
+        // e.g. being inside an obstacle is fine, AOEs may not reach the player depending on vertical distance, etc
+        if (World.Client.Flying)
+            return;
+
+        // if the player on a ranged job pulls a dungeon boss from outside (e.g. Mistwake B1), pathfinder won't force it to move inside the arena, since their position isn't in the pathfinding map
+        // TODO: what should the generic solution be? do we need multiple sets of bounds?
+        // forcing the player to move directly toward the arena center works fine in this basic case, but would be terrible for other content
+        //   - hunt marks can be hundreds of units away
+        //   - araid/foray bosses are often located on an isolated platform with a clientpath leading to it, so VBM would just run directly forward into the abyss
+        if (Bossmods.ActiveModule is { Info.Category: BossModuleInfo.Category.Dungeon, StateMachine.ActivePhase: not null } module && !module.Arena.InBounds(Player.Position))
+        {
+            Hints.ForcedMovement = Player.DirectionTo(module.Arena.Center).ToVec3();
+            return;
+        }
 
         var castOpt = strategy.Option(Track.Cast);
         var castStrategy = castOpt.As<CastStrategy>();
@@ -150,14 +185,14 @@ public sealed class NormalMovement(RotationModuleManager manager, Actor player) 
         if (isSpinning)
         {
             // rect is offset by -1 unit player-relative. we know very well that player-centered shapes make the pathfinder freak the fuck out
-            Hints.AddForbiddenZone(ShapeContains.Rect(Player.Position, Player.Rotation, SpinningLookahead, SpinningLookahead + 2, SpinningLookahead + 2), World.FutureTime(2));
-            Hints.AddForbiddenZone(ShapeContains.Cone(Player.Position, 100, Player.Rotation + 180.Degrees(), 45.Degrees()), DateTime.MaxValue);
+            Hints.AddForbiddenZone(ShapeDistance.Rect(Player.Position, Player.Rotation, SpinningLookahead, SpinningLookahead + 2, SpinningLookahead + 2), World.FutureTime(2));
+            Hints.AddForbiddenZone(ShapeDistance.Cone(Player.Position, 100, Player.Rotation + 180.Degrees(), 45.Degrees()), DateTime.MaxValue);
         }
 
         if (Player.FindStatus(SID.ThinIce) is { } thinIce)
         {
             var distance = thinIce.Extra * 0.1f;
-            Hints.AddForbiddenZone(ShapeContains.Donut(Player.Position, 1, distance - 1), World.FutureTime(2));
+            Hints.AddForbiddenZone(ShapeDistance.Donut(Player.Position, 1, distance - 1), World.FutureTime(2));
         }
 
         var speed = World.Client.MoveSpeed;
@@ -171,12 +206,9 @@ public sealed class NormalMovement(RotationModuleManager manager, Actor player) 
             ForbiddenZoneCushionStrategy.Large => 3.0f,
             _ => 0f
         };
-        var delay = strategy.Option(Track.DelayMovement).As<DelayMovementStrategy>() switch
-        {
-            DelayMovementStrategy.Short => 0.5f,
-            DelayMovementStrategy.Long => 1.0f,
-            _ => 0f
-        };
+        var movementDelay = DelaySeconds(strategy.Option(Track.DelayMovement).As<DelayMovementStrategy>());
+        var separateDodgeDelay = strategy.Option(Track.SeparateDodgeDelay).As<SeparateDodgeDelayStrategy>() == SeparateDodgeDelayStrategy.Enabled;
+        var dodgeDelay = DelaySeconds(strategy.Option(Track.DodgeDelayMovement).As<DelayMovementStrategy>());
         NavigationDecision navi = default;
         var resetStats = true;
         switch (destinationStrategy)
@@ -184,8 +216,19 @@ public sealed class NormalMovement(RotationModuleManager manager, Actor player) 
             case DestinationStrategy.Pathfind:
                 navi = GetDecision(speed, cushionSize);
                 resetStats = false;
-                if (delay > 0)
+                var isDodge = navi.LeewaySeconds < float.MaxValue;
+                var delay = separateDodgeDelay
+                    ? (isDodge ? dodgeDelay : movementDelay)
+                    : movementDelay;
+                if (separateDodgeDelay && _delayMovementIsDodge != isDodge)
+                {
+                    _delayMovementIsDodge = isDodge;
+                    TimeToMove = delay > 0 ? World.FutureTime(delay) : null;
+                }
+                else if (delay > 0)
                     TimeToMove ??= World.FutureTime(delay);
+                else
+                    TimeToMove = null;
                 break;
             case DestinationStrategy.Explicit:
                 navi = new() { Destination = ResolveTargetLocation(destinationOpt.Value), TimeToGoal = destinationOpt.Value.ExpireIn };
@@ -210,6 +253,7 @@ public sealed class NormalMovement(RotationModuleManager manager, Actor player) 
         if (navi.Destination == null)
         {
             TimeToMove = null;
+            _delayMovementIsDodge = null;
             return; // nothing to do
         }
 
@@ -294,7 +338,7 @@ public sealed class NormalMovement(RotationModuleManager manager, Actor player) 
                 // TODO: maybe just check a single closest grid cell that we would intersect if we go forward?..
                 allowMovement = CalculateUnobstructedPathLength(World.Client.ForcedMovementDirection) >= Math.Min(4, distSq);
             }
-            Hints.ForcedMovement = allowMovement ? World.Client.ForcedMovementDirection.ToDirection().ToVec3(Player.PosRot.Y) : default;
+            Hints.ForcedMovement = allowMovement ? World.Client.ForcedMovementDirection.ToDirection().ToVec3() : default;
 
             //var halfThreshold = Hints.MisdirectionThreshold; // even much smaller threshold seems to work fine in practice (TODO: reconsider...)
             //var idealDir = Angle.FromDirection(dir);
@@ -314,7 +358,7 @@ public sealed class NormalMovement(RotationModuleManager manager, Actor player) 
         {
             // fine to move if we won't interrupt cast (or are explicitly allowed to)
             var allowMovement = Player.CastInfo == null || Player.CastInfo.EventHappened || castStrategy is CastStrategy.DropMove or CastStrategy.DropInstants;
-            Hints.ForcedMovement = allowMovement ? dir.ToVec3(Player.PosRot.Y) : default;
+            Hints.ForcedMovement = allowMovement ? dir.ToVec3() : default;
         }
 
         var maxCastTime = castStrategy switch
@@ -333,7 +377,7 @@ public sealed class NormalMovement(RotationModuleManager manager, Actor player) 
             {
                 Hints.ForceCancelCast = true;
                 // no leeway, cast might have been initiated by user, keep moving
-                Hints.ForcedMovement = dir.ToVec3(Player.PosRot.Y);
+                Hints.ForcedMovement = dir.ToVec3();
             }
         }
     }

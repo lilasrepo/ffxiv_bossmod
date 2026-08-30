@@ -95,7 +95,12 @@ public sealed class RotationModuleManager : IDisposable
             WorldState.Client.ActionRequested.Subscribe(OnActionRequested),
             WorldState.Client.CountdownChanged.Subscribe(OnCountdownChanged),
             WorldState.Client.ActionFailedLoS.Subscribe(OnLoSFailed),
-            Database.Presets.PresetModified.Subscribe(OnPresetModified)
+            Database.Presets.PresetModified.Subscribe(OnPresetModified),
+            // porting-note: upstream's IsPvPAreaChanged subscription is taken; its sibling
+            // its sibling AI-config Modified subscription is NOT -- that is half of the VBM-Multibox
+            // auto-injection that fights TC's legacy AIController (jerky dodge / no melee
+            // profile / won't path to target). See project_bossmod_ai_walkback_recipe.
+            WorldState.IsPvPAreaChanged.Subscribe(a => DirtyActiveModules(true))
         );
     }
 
@@ -281,6 +286,17 @@ public sealed class RotationModuleManager : IDisposable
                     continue;
                 if (!def.CanUseWhileRoleplaying && isRPMode)
                     continue;
+
+                var compat = def.PvP switch
+                {
+                    PvPCompatibility.None => !WorldState.IsPvPArea,
+                    PvPCompatibility.PvPOnly => WorldState.IsPvPArea,
+                    _ => true
+                };
+
+                if (!compat)
+                    continue;
+
                 res.Add((index, new(i, def, modules[i].Builder(this, player))));
             }
         }

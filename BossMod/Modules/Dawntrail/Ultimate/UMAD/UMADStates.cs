@@ -4,6 +4,10 @@ class UMADStates : StateMachineBuilder
 {
     readonly UMAD _module;
 
+    // bosses can occasionally get deleted on the same frame they go untargetable
+    // thank you vera
+    static bool IsEffectivelyDead(Actor? a) => a is { IsTargetable: false, HPRatio: < 1 } or { IsDestroyed: true };
+
     public UMADStates(BossModule module) : base(module)
     {
         _module = (UMAD)module;
@@ -13,13 +17,13 @@ class UMADStates : StateMachineBuilder
             .Raw.Update = () => !Module.PrimaryActor.IsTargetable;
         SimplePhase(1, P2, "P2")
             .SetHint(StateMachine.PhaseHint.StartWithDowntime)
-            .Raw.Update = () => _module.BossP2() is { IsTargetable: false, HPRatio: < 1 };
+            .Raw.Update = () => IsEffectivelyDead(_module.BossP2());
         SimplePhase(2, P3, "P3")
             .SetHint(StateMachine.PhaseHint.StartWithDowntime)
-            .Raw.Update = () => _module.ExdeathP3() is { HPMP.CurHP: 1, IsTargetable: false } && _module.ChaosP3() is { HPMP.CurHP: 1, IsTargetable: false };
+            .Raw.Update = () => IsEffectivelyDead(_module.ExdeathP3()) && IsEffectivelyDead(_module.ChaosP3());
         SimplePhase(3, P4, "P4")
             .SetHint(StateMachine.PhaseHint.StartWithDowntime)
-            .Raw.Update = () => _module.KefkaP4() is { IsTargetable: false, HPRatio: < 1 };
+            .Raw.Update = () => IsEffectivelyDead(_module.KefkaP4());
         SimplePhase(4, P5, "P5")
             .ActivateOnEnter<P5ForsakenHoles>()
             .SetHint(StateMachine.PhaseHint.StartWithDowntime)
@@ -522,7 +526,7 @@ class UMADStates : StateMachineBuilder
         ComponentCondition<P3SlapHappy>(id + 1, 5.8f, s => s.NumCasts > 0, "Slams start");
         ComponentCondition<P3SlapHappy>(id + 2, 2.6f, s => s.NumCasts >= 4)
             .DeactivateOnExit<P3SlapHappy>();
-        ComponentCondition<P3SlapHappyShockwave>(id + 0x10, 0.1f, s => s.Resolved, "Stack(s)")
+        ComponentCondition<P3SlapHappyShockwave>(id + 0x10, 0.1f, s => s.Resolved, "Stack/spread")
             .DeactivateOnExit<P3SlapHappyShockwave>();
 
         ComponentCondition<P3Nothingness>(id + 0x100, 7.4f, n => n.NumCasts == 1, "Laser 1")
@@ -554,7 +558,7 @@ class UMADStates : StateMachineBuilder
         ComponentCondition<P3SlapHappy>(id + 0x10, 2.1f, s => s.NumCasts > 0, "Slams start");
         ComponentCondition<P3SlapHappy>(id + 0x11, 2.6f, s => s.NumCasts >= 4)
             .DeactivateOnExit<P3SlapHappy>();
-        ComponentCondition<P3SlapHappyShockwave>(id + 0x20, 0.1f, s => s.Resolved, "Stack(s)")
+        ComponentCondition<P3SlapHappyShockwave>(id + 0x20, 0.1f, s => s.Resolved, "Stack/spread")
             .DeactivateOnExit<P3SlapHappyShockwave>();
 
         ComponentCondition<P3Nothingness>(id + 0x100, 7.5f, n => n.NumCasts == 6, "Lasers 3");
@@ -598,7 +602,7 @@ class UMADStates : StateMachineBuilder
         ComponentCondition<P3LatLongShockwave>(id + 0x104, 2, p => p.NumCasts == 4, "Front/sides 2")
             .DeactivateOnExit<P3LatLongShockwave>();
 
-        ComponentCondition<P3SlapHappyShockwave>(id + 0x110, 2.3f, p => p.Resolved, "Stack(s)")
+        ComponentCondition<P3SlapHappyShockwave>(id + 0x110, 2.3f, p => p.Resolved, "Stack/spread")
             .ExecOnEnter<P3SlapHappyShockwave>(p => p.EnableHints = true)
             .DeactivateOnExit<P3SlapHappy>()
             .DeactivateOnExit<P3SlapHappyShockwave>();

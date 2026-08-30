@@ -289,6 +289,8 @@ public sealed class ReplayParserLog : IDisposable
             [new("UMRK"u8)] = ParseUserMarker,
             [new("RSV "u8)] = ParseRSVData,
             [new("ZONE"u8)] = ParseZoneChange,
+            [new("PVP+"u8)] = () => new WorldState.OpPvPArea(true),
+            [new("PVP-"u8)] = () => new WorldState.OpPvPArea(false),
             [new("DIRU"u8)] = ParseDirectorUpdate,
             [new("ENVC"u8)] = ParseMapEffect,
             [new("LEME"u8)] = ParseLegacyMapEffect,
@@ -351,6 +353,8 @@ public sealed class ReplayParserLog : IDisposable
             [new("CLCB"u8)] = ParseClientCombo,
             [new("CLST"u8)] = ParseClientPlayerStats,
             [new("CLMV"u8)] = ParseClientMovespeed,
+            [new("FLY+"u8)] = () => new ClientState.OpFlyingChange(true),
+            [new("FLY-"u8)] = () => new ClientState.OpFlyingChange(false),
             [new("CLCD"u8)] = ParseClientCooldown,
             [new("CLDA"u8)] = ParseClientDutyActions,
             [new("CLBH"u8)] = ParseClientBozjaHolster,
@@ -671,8 +675,17 @@ public sealed class ReplayParserLog : IDisposable
     private ActorState.OpEventOpenTreasure ParseActorEventOpenTreasure() => new(_input.ReadActorID());
 
     private ActorState.OpVisibility ParseActorVisibility() => new(_input.ReadActorID(), Visibility.Decode((char)_input.ReadUShort(false)));
-    private PartyState.OpModify ParsePartyModify() => new(_input.ReadInt(), new(_input.ReadULong(true), _input.ReadULong(true), _version >= 15 && _input.ReadBool(), _version < 15 ? "" : _input.ReadString()));
-    private PartyState.OpModify ParsePartyLeave() => new(_input.ReadInt(), new(0, 0, false, ""));
+    private PartyState.OpModify ParsePartyModify()
+    {
+        var slot = _input.ReadInt();
+        var cid = _input.ReadULong(true);
+        var iid = _input.ReadULong(true);
+        var cs = _version >= 15 && _input.ReadBool();
+        if (_version is >= 15 and < 31)
+            _input.ReadString(); // member name, not stored here anymore (just look them up in worldstate)
+        return new(slot, new(cid, iid, cs));
+    }
+    private PartyState.OpModify ParsePartyLeave() => new(_input.ReadInt(), new(0, 0, false));
     private PartyState.OpLimitBreakChange ParsePartyLimitBreak() => new(_input.ReadInt(), _input.ReadInt());
 
     private ClientState.OpActionRequest ParseClientActionRequest()

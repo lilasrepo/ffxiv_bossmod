@@ -4,7 +4,7 @@ class P3EarthquakeRaidwide(BossModule module) : Components.RaidwideCast(module, 
 class P3EarthHints(BossModule module) : BossComponent(module)
 {
     readonly List<Actor> _accretions = [];
-    public override void OnStatusGain(Actor actor, ActorStatus status)
+    public override void OnStatusGain(Actor actor, in ActorStatus status)
     {
         if ((SID)status.ID == SID.Accretion)
         {
@@ -33,7 +33,7 @@ class P3KefkaIndicator(BossModule module) : BossComponent(module)
     Actor? _bigKefka;
     bool offset;
 
-    public override void OnStatusGain(Actor actor, ActorStatus status)
+    public override void OnStatusGain(Actor actor, in ActorStatus status)
     {
         if ((SID)status.ID == SID.P3Max)
         {
@@ -105,12 +105,17 @@ class P3SlapHappyShockwave(BossModule module) : Components.UntelegraphedBait(mod
     int _numExpected;
     public bool Resolved { get; private set; }
 
+    readonly UMADConfig _config = Service.Config.Get<UMADConfig>();
+
+    Angle _bossFacing;
+
     public override void OnCastStarted(Actor caster, ActorCastInfo spell)
     {
         DateTime activation;
         switch ((AID)spell.Action.ID)
         {
             case AID.SlapHappyLeftHand:
+                _bossFacing = spell.Rotation;
                 _numExpected = 3;
                 activation = Module.CastFinishAt(spell, 3.4f);
                 CurrentBaits.Add(new(Arena.Center, Raid.WithSlot().WhereActor(a => a.Class.IsDD()).Mask(), new AOEShapeCone(100, 30.Degrees()), activation, count: 1));
@@ -118,10 +123,30 @@ class P3SlapHappyShockwave(BossModule module) : Components.UntelegraphedBait(mod
                 CurrentBaits.Add(new(Arena.Center, Raid.WithSlot().WhereActor(a => a.Class.GetClassCategory() == ClassCategory.Tank).Mask(), new AOEShapeCone(100, 30.Degrees()), activation, count: 1));
                 break;
             case AID.SlapHappyRightHand:
+                _bossFacing = spell.Rotation;
                 _numExpected = 1;
                 activation = Module.CastFinishAt(spell, 3.4f);
-                CurrentBaits.Add(new(Arena.Center, Raid.WithSlot().WhereActor(a => a.Class.GetClassCategory() == ClassCategory.Healer).Mask(), new AOEShapeCone(100, 30.Degrees()), activation, count: 1, stackSize: 8));
+                CurrentBaits.Add(new(Arena.Center, Raid.WithSlot().WhereActor(a => a.Role != Role.Tank).Mask(), new AOEShapeCone(100, 30.Degrees()), activation, count: 1, stackSize: 8));
                 break;
+        }
+    }
+
+    public override void AddMovementHints(int slot, Actor actor, MovementHints movementHints)
+    {
+        if (!_config.P3SlapHappyHints)
+            return;
+
+        if (CurrentBaits.Count == 1)
+            movementHints.Add((actor.Position, Arena.Center + _bossFacing.ToDirection().OrthoL() * 8.485f, EnableHints ? ArenaColor.Safe : ArenaColor.Danger));
+
+        if (CurrentBaits.Count == 3)
+        {
+            if (actor.Class.IsDD())
+                movementHints.Add((actor.Position, Arena.Center + (_bossFacing - 45.Degrees()).ToDirection() * 8.485f, EnableHints ? ArenaColor.Safe : ArenaColor.Danger));
+            if (actor.Role == Role.Healer)
+                movementHints.Add((actor.Position, Arena.Center + (_bossFacing - 90.Degrees()).ToDirection() * 8.485f, EnableHints ? ArenaColor.Safe : ArenaColor.Danger));
+            if (actor.Role == Role.Tank)
+                movementHints.Add((actor.Position, Arena.Center + (_bossFacing - 135.Degrees()).ToDirection() * 8.485f, EnableHints ? ArenaColor.Safe : ArenaColor.Danger));
         }
     }
 
@@ -200,7 +225,7 @@ class P3Nothingness : Components.BaitAwayTethers
             base.AddHints(slot, actor, hints);
     }
 
-    public override void OnTethered(Actor source, ActorTetherInfo tether)
+    public override void OnTethered(Actor source, in ActorTetherInfo tether)
     {
         base.OnTethered(source, tether);
 
@@ -258,7 +283,7 @@ class P3Nothingness : Components.BaitAwayTethers
             AssignHoles();
     }
 
-    public override void OnStatusGain(Actor actor, ActorStatus status)
+    public override void OnStatusGain(Actor actor, in ActorStatus status)
     {
         var order = (SID)status.ID switch
         {

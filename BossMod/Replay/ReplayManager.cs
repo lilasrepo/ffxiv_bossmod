@@ -1,4 +1,4 @@
-﻿using BossMod.Autorotation;
+using BossMod.Autorotation;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility.Raii;
@@ -327,7 +327,7 @@ public sealed class ReplayManager : IDisposable
 
         var player = new ReplayPlayer(r);
         player.WorldState.Frame.Timestamp = r.Ops[0].Timestamp; // so that we get correct name etc.
-        using var relogger = new ReplayRecorder(player.WorldState, format, false, new FileInfo(r.Path).Directory!, format.ToString());
+        using var relogger = new ReplayRecorder(player.WorldState, format, false, new FileInfo(r.Path).Directory!, format.ToString(), false);
         player.AdvanceTo(DateTime.MaxValue, () => { });
     }
 

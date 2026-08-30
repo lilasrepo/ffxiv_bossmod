@@ -13,6 +13,8 @@ public class UMADConfig : ConfigNode
         None,
         [PropertyDisplay("Big box (CW)")]
         BigBox,
+        [PropertyDisplay("Big box (CW) with uptime arrows NE/SW")]
+        BigBoxUptime
     }
 
     [PropertyDisplay("P1 Tele-Portent: arrow placement hints")]
@@ -51,6 +53,9 @@ public class UMADConfig : ConfigNode
 
     [PropertyDisplay("P3 Blackhole tether assignments")]
     public P3BlackholeStrategyType P3BlackholeStrategy = P3BlackholeStrategyType.None;
+
+    [PropertyDisplay("P3 Slap Happy: show movement hints")]
+    public bool P3SlapHappyHints = true;
 
     [PropertyDisplay("P5 Maddening Orchestra: treat Chaotic Holy as a spread", tooltip: "The tank that receives the Surprise Holy debuff is targeted by Chaotic Holy, a small stack that is intended to be shared with the party. It can be taken solo using invuln, which simplifies the mechanic.")]
     public bool P5MaddeningSpreadAll = true;

@@ -99,6 +99,7 @@ class ReplayDetailsWindow : UIWindow
         ImGui.Checkbox("Override", ref _azimuthOverride);
         _hintsBuilder.Update(_hints, _povSlot, false);
         _rmm.Update(0, false, false);
+        var drawnGauge = false;
         if (_mgr.ActiveModule != null)
         {
             if (ImGui.Checkbox("Draw all actors", ref _moduleDebug.DrawAllActors))
@@ -131,12 +132,7 @@ class ReplayDetailsWindow : UIWindow
                 }
             }
 
-            if (_showDebug && _povSlot == 0 && _mgr.WorldState.Party[0] is { } player)
-            {
-                var cursor = ImGui.GetCursorPos();
-                GaugeVisualizer.Instance().Draw(player, _mgr.WorldState.Client);
-                ImGui.SetCursorPos(cursor);
-            }
+            drawnGauge = DrawGauge(true);
 
             var compList = string.Join(", ", _mgr.ActiveModule.Components.Select(c => c.GetType().Name));
             var pov = _mgr.WorldState.Party[_povSlot];
@@ -148,6 +144,9 @@ class ReplayDetailsWindow : UIWindow
             }
             ImGui.TextUnformatted($"Current state: {_mgr.ActiveModule.StateMachine.ActiveState?.ID:X}, Time since pull: {_mgr.ActiveModule.StateMachine.TimeSinceActivation:f3}, Draw time: {(drawTimerPost - drawTimerPre).TotalMilliseconds:f3}ms, Components: {compList}, Player offset: {povOffsetString}, Draw cache: {_mgr.ActiveModule.Arena.DrawCacheStats()}");
         }
+
+        if (!drawnGauge)
+            DrawGauge(false);
 
         if (ImGui.CollapsingHeader("Plan execution"))
         {
@@ -215,6 +214,22 @@ class ReplayDetailsWindow : UIWindow
 
         if (resetPF)
             ResetPF();
+    }
+
+    private bool DrawGauge(bool inline)
+    {
+        if (_showDebug && _povSlot == 0 && _mgr.WorldState.Party[0] is { } player)
+        {
+            var cursor = ImGui.GetCursorPos();
+            if (inline)
+                ImGui.SameLine();
+            GaugeVisualizer.Instance().Draw(player, _mgr.WorldState.Client);
+            if (inline)
+                ImGui.SetCursorPos(cursor);
+            return true;
+        }
+
+        return false;
     }
 
     private void DrawControlRow()
@@ -584,9 +599,9 @@ class ReplayDetailsWindow : UIWindow
 
         var player = new ReplayPlayer(_player.Replay);
         player.WorldState.Frame.Timestamp = _player.Replay.Ops[0].Timestamp; // so that we get correct name etc.
-        using (var relogger = new ReplayRecorder(player.WorldState, ReplayLogFormat.BinaryCompressed, false, new FileInfo(_player.Replay.Path).Directory!, "Before"))
+        using (var relogger = new ReplayRecorder(player.WorldState, ReplayLogFormat.BinaryCompressed, false, new FileInfo(_player.Replay.Path).Directory!, "Before", false))
             player.AdvanceTo(_curTime, () => { });
-        using (var relogger = new ReplayRecorder(player.WorldState, ReplayLogFormat.BinaryCompressed, true, new FileInfo(_player.Replay.Path).Directory!, "After"))
+        using (var relogger = new ReplayRecorder(player.WorldState, ReplayLogFormat.BinaryCompressed, true, new FileInfo(_player.Replay.Path).Directory!, "After", false))
             player.AdvanceTo(DateTime.MaxValue, () => { });
     }
 
@@ -604,7 +619,7 @@ class ReplayDetailsWindow : UIWindow
         var player = new ReplayPlayer(_player.Replay);
         player.WorldState.Frame.Timestamp = _player.Replay.Ops[0].Timestamp;
         player.AdvanceTo(enc.Time.Start, () => { });
-        using var relogger = new ReplayRecorder(player.WorldState, ReplayLogFormat.BinaryCompressed, true, new FileInfo(_player.Replay.Path).Directory!, $"Encounter_{Utils.StringToIdentifier(primaryActorName ?? "unknown")}");
+        using var relogger = new ReplayRecorder(player.WorldState, ReplayLogFormat.BinaryCompressed, true, new FileInfo(_player.Replay.Path).Directory!, $"Encounter_{Utils.StringToIdentifier(primaryActorName ?? "unknown")}", false);
         player.AdvanceTo(enc.Time.End, () => { });
     }
 }

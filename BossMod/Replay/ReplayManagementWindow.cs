@@ -1,4 +1,4 @@
-﻿using BossMod.Autorotation;
+using BossMod.Autorotation;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Bindings.ImGui;
 using Lumina.Excel.Sheets;
@@ -185,7 +185,7 @@ public class ReplayManagementWindow : UIWindow
 
         try
         {
-            _recorder = new(_ws, _config.WorldLogFormat, true, _logDir, prefix + GetPrefix());
+            _recorder = new(_ws, _config.WorldLogFormat, true, _logDir, prefix + GetPrefix(), false);
         }
         catch (Exception ex)
         {

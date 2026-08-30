@@ -1,11 +1,13 @@
 namespace BossMod.Dawntrail.Foray.FATE.Lifereaper;
 
-public enum OID : uint {
+public enum OID : uint
+{
     Boss = 0x4772, // R3.500, x1
     Lifereaper = 0x4773, // R0.500, x0 (spawn during fight)
 }
 
-public enum AID : uint {
+public enum AID : uint
+{
     AutoAttack = 42901, // Boss->player, no cast, single-target
     Teleport = 42186, // Boss->location, no cast, single-target
     Teleport2 = 42196, // Boss->location, no cast, single-target
@@ -27,68 +29,84 @@ public enum AID : uint {
     DismalRoar = 42185, // Lifereaper->self, 5.0s cast, range 60 circle
 }
 
-class SoulSweep(BossModule module) : Components.GroupedAOEs(module, [AID.SoulSweep, AID.SweepingChargeCone], new AOEShapeCone(60.0f, 65.0f.Degrees()));
-class Menace(BossModule module) : Components.StandardAOEs(module, AID.Menace, new AOEShapeCircle(20.0f));
-class HallOfSorrow(BossModule module) : Components.StandardAOEs(module, AID.HallOfSorrow1, 10.0f, highlightImminent: true);
+class SoulSweep(BossModule module) : Components.GroupedAOEs(module, [AID.SoulSweep, AID.SweepingChargeCone], new AOEShapeCone(60, 65.Degrees()));
+class Menace(BossModule module) : Components.StandardAOEs(module, AID.Menace, new AOEShapeCircle(20));
+class HallOfSorrow(BossModule module) : Components.StandardAOEs(module, AID.HallOfSorrow1, 10, highlightImminent: true);
 class DismalRoar(BossModule module) : Components.RaidwideCast(module, AID.DismalRoar);
-class MenacingCharge(BossModule module) : Components.ChargeAOEs(module, AID.MenacingChargeCast, 4.0f);
+class MenacingCharge(BossModule module) : Components.ChargeAOEs(module, AID.MenacingChargeCast, 4);
 
 // SweepingChargeCone doesn't seem to be a fixed angle turn, but rather certain points in how the boss will turn
 // easier to tell the player to just follow the charge or not
-class SweepingCharge(BossModule module) : Components.ChargeAOEs(module, AID.SweepingChargeCast, 4.0f) {
-    private bool active = false;
-    private ActorCastInfo? sweepingChargeSpell = null;
+class SweepingCharge(BossModule module) : Components.ChargeAOEs(module, AID.SweepingChargeCast, 4)
+{
+    private bool active;
+    private ActorCastInfo? sweepingChargeSpell;
 
-    public override void OnCastStarted(Actor caster, ActorCastInfo spell) {
+    public override void OnCastStarted(Actor caster, ActorCastInfo spell)
+    {
         base.OnCastStarted(caster, spell);
-        if (spell.Action.ID == (uint)AID.SweepingChargeCast) {
+        if (spell.Action.ID == (uint)AID.SweepingChargeCast)
+        {
             sweepingChargeSpell = spell;
             active = true;
         }
     }
 
-    public override void OnEventCast(Actor caster, ActorCastEvent spell) {
+    public override void OnEventCast(Actor caster, ActorCastEvent spell)
+    {
         base.OnEventCast(caster, spell);
-        if (spell.Action.ID == (uint)AID.SweepingChargeCone) {
+        if (spell.Action.ID == (uint)AID.SweepingChargeCone)
+        {
             sweepingChargeSpell = null;
             active = false;
         }
     }
 
-    public override void AddAIHints(int slot, Actor actor, PartyRolesConfig.Assignment assignment, AIHints hints) {
+    public override void AddAIHints(int slot, Actor actor, PartyRolesConfig.Assignment assignment, AIHints hints)
+    {
         base.AddAIHints(slot, actor, assignment, hints);
-        if (active == true && sweepingChargeSpell != null) {
-            hints.GoalZones.Add(hints.GoalProximity(sweepingChargeSpell.LocXZ, 4.0f, 100.0f));
+        if (active && sweepingChargeSpell != null)
+        {
+            hints.GoalZones.Add(hints.GoalProximity(sweepingChargeSpell.LocXZ, 4, 100));
         }
     }
 
-    public override void AddGlobalHints(GlobalHints hints) {
+    public override void AddGlobalHints(GlobalHints hints)
+    {
         base.AddGlobalHints(hints);
-        if (active == true) {
+        if (active)
+        {
             hints.Add("Follow the charge attack!");
         }
     }
 }
 
-class MenacingChargeAOE(BossModule module) : Components.StandardAOEs(module, AID.MenaceChargeAOE, 20.0f) {
-    private List<AOEInstance> aoes = [];
+class MenacingChargeAOE(BossModule module) : Components.StandardAOEs(module, AID.MenaceChargeAOE, 20)
+{
+    private readonly List<AOEInstance> aoes = [];
 
-    public override void OnCastStarted(Actor caster, ActorCastInfo spell) {
-        if (spell.Action.ID == (uint)AID.MenacingChargeCast) {
-            aoes.Add(new(new AOEShapeCircle(20.0f), spell.LocXZ, spell.Rotation, Module.WorldState.CurrentTime.AddSeconds(13.2f)));
+    public override void OnCastStarted(Actor caster, ActorCastInfo spell)
+    {
+        if (spell.Action.ID == (uint)AID.MenacingChargeCast)
+        {
+            aoes.Add(new(new AOEShapeCircle(20), spell.LocXZ, spell.Rotation, Module.WorldState.CurrentTime.AddSeconds(13.2f)));
         }
     }
 
-    public override void OnEventCast(Actor caster, ActorCastEvent spell) {
-        if (spell.Action.ID == (uint)AID.MenaceChargeAOE) {
+    public override void OnEventCast(Actor caster, ActorCastEvent spell)
+    {
+        if (spell.Action.ID == (uint)AID.MenaceChargeAOE)
+        {
             aoes.Clear();
         }
     }
 
     public override IEnumerable<AOEInstance> ActiveAOEs(int slot, Actor actor) => aoes;
 
-    public override void AddGlobalHints(GlobalHints hints) {
-        if (aoes.Count == 0) {
+    public override void AddGlobalHints(GlobalHints hints)
+    {
+        if (aoes.Count == 0)
+        {
             return;
         }
 
@@ -96,8 +114,10 @@ class MenacingChargeAOE(BossModule module) : Components.StandardAOEs(module, AID
     }
 }
 
-class LifereaperStates : StateMachineBuilder {
-    public LifereaperStates(BossModule module) : base(module) {
+class LifereaperStates : StateMachineBuilder
+{
+    public LifereaperStates(BossModule module) : base(module)
+    {
         TrivialPhase()
             .ActivateOnEnter<SoulSweep>()
             .ActivateOnEnter<Menace>()
@@ -110,4 +130,4 @@ class LifereaperStates : StateMachineBuilder {
 }
 
 [ModuleInfo(Incomplete = true, Contributors = "Equilius", GroupType = BossModuleInfo.GroupType.CFC, GroupID = 1018, NameID = 13741)]
-public class Lifereaper(WorldState ws, Actor primary) : BossModule(ws, primary, new(416.2f, -10.0f), new ArenaBoundsCircle(40));
+public class Lifereaper(WorldState ws, Actor primary) : BossModule(ws, primary, new(416.2f, -10), new ArenaBoundsCircle(40));

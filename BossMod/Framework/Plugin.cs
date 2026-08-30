@@ -257,7 +257,12 @@ public sealed class Plugin : IDalamudPlugin
         cmd.AddSubcommand("toggle").SetSimpleHandler("toggle AI mode", () => _ai.Enabled ^= true);
         cmd.AddSubcommand("follow").SetComplexHandler("<name>/slot<N>", "enable AI mode and follow party member with specified name or at specified slot", masterString =>
         {
-            var masterSlot = masterString.StartsWith("slot", StringComparison.OrdinalIgnoreCase) ? int.Parse(masterString[4..]) - 1 : _ws.Party.FindSlot(masterString);
+            // porting-note: the handler now receives a ReadOnlySpan<char>, and PartyState.FindSlot
+            // only takes an instance id -- resolve the name the way upstream's own handler does.
+            var ms = masterString.ToString();
+            var masterSlot = masterString.StartsWith("slot", StringComparison.OrdinalIgnoreCase)
+                ? int.Parse(masterString[4..]) - 1
+                : Array.FindIndex(_ws.Party.Members, m => _ws.Actors.Find(m.InstanceId)?.Name == ms);
             if (_ws.Party[masterSlot] != null)
             {
                 _ai.SwitchToFollow(masterSlot);

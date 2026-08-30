@@ -1,12 +1,14 @@
-namespace BossMod.Modules.Dawntrail.Foray.FATE.Nammu;
+namespace BossMod.Dawntrail.Foray.FATE.Nammu;
 
-public enum OID : uint {
+public enum OID : uint
+{
     Boss = 0x4718,
     Helper = 0x233C,
     Nammu = 0x4719, // R0.500, x0 (spawn during fight)
 }
 
-public enum AID : uint {
+public enum AID : uint
+{
     AutoAttack = 41768, // Boss->player, no cast, single-target
     VoidWaterIVCast = 41785, // Boss->self, 5.0s cast, single-target
     VoidWaterIV = 41786, // 4719->location, 5.0s cast, range 40 circle
@@ -36,29 +38,36 @@ public enum AID : uint {
 class VoidWaterIV1(BossModule module) : Components.RaidwideCast(module, AID.VoidWaterIV);
 class VoidWaterIII(BossModule module) : Components.StandardAOEs(module, AID.VoidWaterIII, 6f);
 
-class TidelineStart(BossModule module) : Components.StandardAOEs(module, AID.TidelineStart, new AOEShapeRect(50f, 5f), highlightImminent: true) {
-    private ActorCastInfo? spellInstance = null;
+class TidelineStart(BossModule module) : Components.StandardAOEs(module, AID.TidelineStart, new AOEShapeRect(50f, 5f), highlightImminent: true)
+{
+    private ActorCastInfo? spellInstance;
 
-    public override void OnCastStarted(Actor caster, ActorCastInfo spell) {
+    public override void OnCastStarted(Actor caster, ActorCastInfo spell)
+    {
         base.OnCastStarted(caster, spell);
-        if (spell.Action == WatchedAction) {
+        if (spell.Action == WatchedAction)
+        {
             spellInstance = spell;
         }
     }
 
-    public override void OnEventCast(Actor caster, ActorCastEvent spell) {
+    public override void OnEventCast(Actor caster, ActorCastEvent spell)
+    {
         base.OnEventCast(caster, spell);
-        if (spell.Action == WatchedAction) {
+        if (spell.Action == WatchedAction)
+        {
             spellInstance = null;
         }
     }
 
     // Directions the AI to stand as close as possible to the starting line for an easier dodge into the middle due to TwinTides
     // otherwise it will sometimes move outwards against the exaflares and won't be able to dodge TwinTides correctly
-    public override void AddAIHints(int slot, Actor actor, PartyRolesConfig.Assignment assignment, AIHints hints) {
+    public override void AddAIHints(int slot, Actor actor, PartyRolesConfig.Assignment assignment, AIHints hints)
+    {
         base.AddAIHints(slot, actor, assignment, hints);
 
-        if (spellInstance == null) {
+        if (spellInstance == null)
+        {
             return;
         }
 
@@ -66,12 +75,14 @@ class TidelineStart(BossModule module) : Components.StandardAOEs(module, AID.Tid
         var rotation = spellInstance.Rotation;
         var right = spellInstance.LocXZ + rotation.ToDirection().OrthoR() * 1f;
         var left = spellInstance.LocXZ + rotation.ToDirection().OrthoL() * 1f;
-        hints.GoalZones.Add(p => shapeInstance.Check(p, right, rotation) || shapeInstance.Check(p, left, rotation) ? 100.0f : 0);
+        hints.GoalZones.Add(p => shapeInstance.Check(p, right, rotation) || shapeInstance.Check(p, left, rotation) ? 100 : 0);
     }
 
     // We change this to draw to the foreground as the exaflares casts overlap with the first one, and it can look confusing where is exactly safe
-    public override void DrawArenaForeground(int pcSlot, Actor pc) {
-        foreach (var c in ActiveAOEs(pcSlot, pc)) {
+    public override void DrawArenaForeground(int pcSlot, Actor pc)
+    {
+        foreach (var c in ActiveAOEs(pcSlot, pc))
+        {
             var col = c.Color;
             if (col == 0 && c.Inverted)
                 col = ArenaColor.SafeFromAOE;
@@ -81,118 +92,146 @@ class TidelineStart(BossModule module) : Components.StandardAOEs(module, AID.Tid
     }
 }
 
-class TidelineExaFlare(BossModule module) : Components.Exaflare(module, new AOEShapeRect(25.0f, 2.5f, 25.0f)) {
-    public override IEnumerable<AOEInstance> ActiveAOEs(int slot, Actor actor) {
-        foreach (var (c, t, r) in FutureAOEs()) {
+class TidelineExaFlare(BossModule module) : Components.Exaflare(module, new AOEShapeRect(25, 2.5f, 25))
+{
+    public override IEnumerable<AOEInstance> ActiveAOEs(int slot, Actor actor)
+    {
+        foreach (var (c, t, r) in FutureAOEs())
+        {
             yield return new(Shape, c, r, t, FutureColor, Risky: false);
         }
 
-        foreach (var (c, t, r) in ImminentAOEs()) {
+        foreach (var (c, t, r) in ImminentAOEs())
+        {
             yield return new(Shape, c, r, t, Color: NumCasts == 0 ? FutureColor : ImminentColor, Risky: NumCasts != 0);
         }
     }
 
-    public override void OnCastStarted(Actor caster, ActorCastInfo spell) {
-        if (spell.Action.ID == (uint)AID.TidelineCast) {
+    public override void OnCastStarted(Actor caster, ActorCastInfo spell)
+    {
+        if (spell.Action.ID == (uint)AID.TidelineCast)
+        {
             NumCasts = 0;
             return;
         }
 
-        var directionRight = caster.Rotation.ToDirection().OrthoR() * 5.0f;
-        var directionLeft = caster.Rotation.ToDirection().OrthoL() * 5.0f;
+        var directionRight = caster.Rotation.ToDirection().OrthoR() * 5;
+        var directionLeft = caster.Rotation.ToDirection().OrthoL() * 5;
 
-        if ((AID)spell.Action.ID == AID.TidelineStart) {
-            Lines.Add(new() {
+        if ((AID)spell.Action.ID == AID.TidelineStart)
+        {
+            Lines.Add(new()
+            {
                 Next = caster.Position + directionRight + directionRight / 2,
                 Advance = directionRight,
                 Rotation = caster.Rotation.ToDirection().ToAngle(),
-                NextExplosion = Module.CastFinishAt(spell, 2.0f),
-                TimeToMove = 2.0f,
+                NextExplosion = Module.CastFinishAt(spell, 2),
+                TimeToMove = 2,
                 ExplosionsLeft = 4,
                 MaxShownExplosions = 2
             });
 
-            Lines.Add(new() {
+            Lines.Add(new()
+            {
                 Next = caster.Position + directionLeft + directionLeft / 2,
                 Advance = directionLeft,
                 Rotation = caster.Rotation.ToDirection().ToAngle(),
-                NextExplosion = Module.CastFinishAt(spell, 2.0f),
-                TimeToMove = 2.0f,
+                NextExplosion = Module.CastFinishAt(spell, 2),
+                TimeToMove = 2,
                 ExplosionsLeft = 4,
                 MaxShownExplosions = 2
             });
         }
     }
 
-    public override void OnEventCast(Actor caster, ActorCastEvent spell) {
-        if ((AID)spell.Action.ID is AID.TidelineStart or AID.TidelineNext) {
-            var ix = Lines.FindIndex(l => l.Next.AlmostEqual(caster.Position + l.Advance / 2, 1.0f));
-            if (ix >= 0) {
+    public override void OnEventCast(Actor caster, ActorCastEvent spell)
+    {
+        if ((AID)spell.Action.ID is AID.TidelineStart or AID.TidelineNext)
+        {
+            var ix = Lines.FindIndex(l => l.Next.AlmostEqual(caster.Position + l.Advance / 2, 1));
+            if (ix >= 0)
+            {
                 AdvanceLine(Lines[ix], caster.Position + Lines[ix].Advance / 2);
-                if (Lines[ix].ExplosionsLeft <= 0) {
+                if (Lines[ix].ExplosionsLeft <= 0)
+                {
                     Lines.RemoveAt(ix);
                 }
             }
         }
 
-        if (spell.Action.ID == (uint)AID.TidelineStart) {
+        if (spell.Action.ID == (uint)AID.TidelineStart)
+        {
             NumCasts++;
         }
     }
 }
 
-class TwinTides(BossModule module) : Components.GenericAOEs(module) {
-    private List<AOEInstance> aoes = [];
+class TwinTides(BossModule module) : Components.GenericAOEs(module)
+{
+    private readonly List<AOEInstance> aoes = [];
 
-    public override void OnCastStarted(Actor caster, ActorCastInfo spell) {
-        if (spell.Action.ID == (uint)AID.RecedingTwinTides) {
+    public override void OnCastStarted(Actor caster, ActorCastInfo spell)
+    {
+        if (spell.Action.ID == (uint)AID.RecedingTwinTides)
+        {
             aoes.Add(new(new AOEShapeCircle(10), caster.Position, caster.Rotation, Module.CastFinishAt(spell)));
-            aoes.Add(new(new AOEShapeDonut(10.0f, 40.0f), caster.Position, caster.Rotation, Module.CastFinishAt(spell, 2.0f), Risky: false));
+            aoes.Add(new(new AOEShapeDonut(10, 40), caster.Position, caster.Rotation, Module.CastFinishAt(spell, 2), Risky: false));
         }
 
-        if (spell.Action.ID == (uint)AID.EncroachingTwinTides) {
-            aoes.Add(new(new AOEShapeDonut(10.0f, 40.0f), caster.Position, caster.Rotation, Module.CastFinishAt(spell)));
-            aoes.Add(new(new AOEShapeCircle(10), caster.Position, caster.Rotation, Module.CastFinishAt(spell, 2.0f), Risky: false));
+        if (spell.Action.ID == (uint)AID.EncroachingTwinTides)
+        {
+            aoes.Add(new(new AOEShapeDonut(10, 40), caster.Position, caster.Rotation, Module.CastFinishAt(spell)));
+            aoes.Add(new(new AOEShapeCircle(10), caster.Position, caster.Rotation, Module.CastFinishAt(spell, 2), Risky: false));
         }
     }
 
-    public override void OnEventCast(Actor caster, ActorCastEvent spell) {
-        if (spell.Action.ID == (uint)AID.NearTideReceding || spell.Action.ID == (uint)AID.FarTideReceding ||
-            spell.Action.ID == (uint)AID.NearTideEncroaching || spell.Action.ID == (uint)AID.FarTideEncroaching) {
-            if (aoes.Count > 0) {
+    public override void OnEventCast(Actor caster, ActorCastEvent spell)
+    {
+        if ((AID)spell.Action.ID is AID.NearTideReceding or AID.FarTideReceding or AID.NearTideEncroaching or AID.FarTideEncroaching)
+        {
+            if (aoes.Count > 0)
+            {
                 aoes.RemoveAt(0);
             }
         }
     }
 
-    public override IEnumerable<AOEInstance> ActiveAOEs(int slot, Actor actor) {
+    public override IEnumerable<AOEInstance> ActiveAOEs(int slot, Actor actor)
+    {
         int show = 0;
-        foreach (var aoe in aoes) {
+        foreach (var aoe in aoes)
+        {
             yield return aoe with { Color = show == 0 ? ArenaColor.Danger : ArenaColor.AOE, Risky = show == 0 };
             show++;
         }
     }
 }
 
-class TwinTentacle(BossModule module) : Components.GenericAOEs(module) {
-    private List<AOEInstance> aoes = [];
+class TwinTentacle(BossModule module) : Components.GenericAOEs(module)
+{
+    private readonly List<AOEInstance> aoes = [];
 
-    public override void OnCastStarted(Actor caster, ActorCastInfo spell) {
-        if (spell.Action.ID == (uint)AID.LeftTwinTentacleFirst) {
-            aoes.Add(new(new AOEShapeCone(60.0f, 90.0f.Degrees()), caster.Position, caster.Rotation.ToDirection().OrthoL().ToAngle(), Module.CastFinishAt(spell), Color: ArenaColor.Danger, Risky: true));
-            aoes.Add(new(new AOEShapeCone(60.0f, 90.0f.Degrees()), caster.Position, caster.Rotation.ToDirection().OrthoR().ToAngle(), Module.CastFinishAt(spell, 2.0f), Color: ArenaColor.Danger, Risky: true));
+    public override void OnCastStarted(Actor caster, ActorCastInfo spell)
+    {
+        if (spell.Action.ID == (uint)AID.LeftTwinTentacleFirst)
+        {
+            aoes.Add(new(new AOEShapeCone(60, 90.Degrees()), caster.Position, caster.Rotation.ToDirection().OrthoL().ToAngle(), Module.CastFinishAt(spell), Color: ArenaColor.Danger, Risky: true));
+            aoes.Add(new(new AOEShapeCone(60, 90.Degrees()), caster.Position, caster.Rotation.ToDirection().OrthoR().ToAngle(), Module.CastFinishAt(spell, 2), Color: ArenaColor.Danger, Risky: true));
         }
 
-        if (spell.Action.ID == (uint)AID.RightTwinTentacleFirst) {
-            aoes.Add(new(new AOEShapeCone(60.0f, 90.0f.Degrees()), caster.Position, caster.Rotation.ToDirection().OrthoR().ToAngle(), Module.CastFinishAt(spell) , Color: ArenaColor.Danger, Risky: true));
-            aoes.Add(new(new AOEShapeCone(60.0f, 90.0f.Degrees()), caster.Position, caster.Rotation.ToDirection().OrthoL().ToAngle(), Module.CastFinishAt(spell, 2.0f) , Color: ArenaColor.Danger, Risky: true));
+        if (spell.Action.ID == (uint)AID.RightTwinTentacleFirst)
+        {
+            aoes.Add(new(new AOEShapeCone(60, 90.Degrees()), caster.Position, caster.Rotation.ToDirection().OrthoR().ToAngle(), Module.CastFinishAt(spell), Color: ArenaColor.Danger, Risky: true));
+            aoes.Add(new(new AOEShapeCone(60, 90.Degrees()), caster.Position, caster.Rotation.ToDirection().OrthoL().ToAngle(), Module.CastFinishAt(spell, 2), Color: ArenaColor.Danger, Risky: true));
         }
     }
 
-    public override void OnEventCast(Actor caster, ActorCastEvent spell) {
-        if (spell.Action.ID == (uint)AID.LeftTwinTentacleFirst || spell.Action.ID == (uint)AID.RightTwinTentacleFirst ||
-            spell.Action.ID == (uint)AID.RightTentacleSecond || spell.Action.ID == (uint)AID.LeftTentacleSecond) {
-            if (aoes.Count > 0) {
+    public override void OnEventCast(Actor caster, ActorCastEvent spell)
+    {
+        if ((AID)spell.Action.ID is AID.LeftTwinTentacleFirst or AID.RightTwinTentacleFirst or AID.RightTentacleSecond or AID.LeftTentacleSecond)
+        {
+            if (aoes.Count > 0)
+            {
                 aoes.RemoveAt(0);
             }
         }
@@ -201,8 +240,10 @@ class TwinTentacle(BossModule module) : Components.GenericAOEs(module) {
     public override IEnumerable<AOEInstance> ActiveAOEs(int slot, Actor actor) => aoes.Take(1);
 }
 
-class NammuStates : StateMachineBuilder {
-    public NammuStates(BossModule module) : base(module) {
+class NammuStates : StateMachineBuilder
+{
+    public NammuStates(BossModule module) : base(module)
+    {
         TrivialPhase()
             .ActivateOnEnter<VoidWaterIV1>()
             .ActivateOnEnter<TidelineStart>()

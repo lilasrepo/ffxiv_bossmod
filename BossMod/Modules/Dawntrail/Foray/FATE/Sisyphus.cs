@@ -1,12 +1,14 @@
-namespace BossMod.Modules.Dawntrail.Foray.FATE.Sisyphus;
+namespace BossMod.Dawntrail.Foray.FATE.Sisyphus;
 
-public enum OID : uint {
+public enum OID : uint
+{
     Boss = 0x4735,
     Helper = 0x233C,
     Sisyphus = 0x4736, // R0.500, x0 (spawn during fight)
 }
 
-public enum AID : uint {
+public enum AID : uint
+{
     AutoAttack = 41994, // Boss->player, no cast, single-target
     Teleport = 41971, // Boss->location, no cast, single-target
 
@@ -37,60 +39,74 @@ public enum AID : uint {
     Trounce = 41972, // Boss->self, 5.0s cast, range 40 60-degree cone
 }
 
-public enum SID : uint {
+public enum SID : uint
+{
     ThunderousMemory = 4382, // Boss->Boss, extra=0x1/0x2
 }
 
-class ThunderousMemoryCircle(BossModule module) : Components.GroupedAOEs(module, [AID.ThunderousMemoryCircle, AID.ResoundingMemoryCircle], new AOEShapeCircle(10.0f));
-class ThunderousMemoryCone(BossModule module) : Components.GroupedAOEs(module, [AID.ThunderousMemoryCone, AID.ResoundingMemoryCone], new AOEShapeCone(70.0f, 22.5f.Degrees()));
-class ThunderousMemoryDonut(BossModule module) : Components.GroupedAOEs(module, [AID.ThunderousMemoryDonut, AID.ResoundingMemoryDonut], new AOEShapeDonut(10.0f, 30.0f));
-class ThunderII(BossModule module) : Components.StandardAOEs(module, AID.ThunderII, new AOEShapeCircle(6.0f));
+class ThunderousMemoryCircle(BossModule module) : Components.GroupedAOEs(module, [AID.ThunderousMemoryCircle, AID.ResoundingMemoryCircle], new AOEShapeCircle(10));
+class ThunderousMemoryCone(BossModule module) : Components.GroupedAOEs(module, [AID.ThunderousMemoryCone, AID.ResoundingMemoryCone], new AOEShapeCone(70, 22.5f.Degrees()));
+class ThunderousMemoryDonut(BossModule module) : Components.GroupedAOEs(module, [AID.ThunderousMemoryDonut, AID.ResoundingMemoryDonut], new AOEShapeDonut(10, 30));
+class ThunderII(BossModule module) : Components.StandardAOEs(module, AID.ThunderII, new AOEShapeCircle(6));
 class ThunderIV(BossModule module) : Components.RaidwideCast(module, AID.ThunderIV);
 class Trounce(BossModule module) : Components.StandardAOEs(module, AID.Trounce, new AOEShapeCone(40f, 30.Degrees()));
 
-class ThriceComeThunder(BossModule module) : Components.GenericAOEs(module) {
-    private List<AOEInstance> aoes = [];
-    private int waves = 0;
+class ThriceComeThunder(BossModule module) : Components.GenericAOEs(module)
+{
+    private readonly List<AOEInstance> aoes = [];
+    private int waves;
 
-    public override void OnCastStarted(Actor caster, ActorCastInfo spell) {
-        if (spell.Action.ID == (uint)AID.ThriceComeThunderInner) {
+    public override void OnCastStarted(Actor caster, ActorCastInfo spell)
+    {
+        if (spell.Action.ID == (uint)AID.ThriceComeThunderInner)
+        {
             aoes.Add(new(new AOEShapeCircle(10), caster.Position, caster.Rotation, Module.CastFinishAt(spell)));
             waves++;
         }
 
-        if (spell.Action.ID == (uint)AID.ThriceComeThunderMiddle) {
+        if (spell.Action.ID == (uint)AID.ThriceComeThunderMiddle)
+        {
             aoes.Add(new(new AOEShapeDonut(10, 20), caster.Position, caster.Rotation, Module.CastFinishAt(spell)));
         }
 
-        if (spell.Action.ID == (uint)AID.ThriceComeThunderOuter) {
+        if (spell.Action.ID == (uint)AID.ThriceComeThunderOuter)
+        {
             aoes.Add(new(new AOEShapeDonut(20, 30), caster.Position, caster.Rotation, Module.CastFinishAt(spell)));
         }
     }
 
-    public override void OnEventCast(Actor caster, ActorCastEvent spell) {
-        if (spell.Action.ID is (uint)AID.ThriceComeThunderInner or (uint)AID.ThriceComeThunderMiddle or (uint)AID.ThriceComeThunderOuter) {
+    public override void OnEventCast(Actor caster, ActorCastEvent spell)
+    {
+        if (spell.Action.ID is (uint)AID.ThriceComeThunderInner or (uint)AID.ThriceComeThunderMiddle or (uint)AID.ThriceComeThunderOuter)
+        {
             aoes.SortBy(a => a.Activation);
-            if (aoes.Count > 0) {
+            if (aoes.Count > 0)
+            {
                 aoes.RemoveAt(0);
 
-                if (spell.Action.ID == (uint)AID.ThriceComeThunderOuter) {
+                if (spell.Action.ID == (uint)AID.ThriceComeThunderOuter)
+                {
                     waves--;
                 }
             }
         }
     }
 
-    public override IEnumerable<AOEInstance> ActiveAOEs(int slot, Actor actor) {
+    public override IEnumerable<AOEInstance> ActiveAOEs(int slot, Actor actor)
+    {
         int show = 0;
-        foreach (var aoe in aoes.OrderBy(a => a.Activation).Take(2 * waves)) {
+        foreach (var aoe in aoes.OrderBy(a => a.Activation).Take(2 * waves))
+        {
             yield return aoe with { Color = show < waves ? ArenaColor.Danger : ArenaColor.AOE, Risky = show < waves };
             show++;
         }
     }
 }
 
-class SisyphusStates : StateMachineBuilder {
-    public SisyphusStates(BossModule module) : base(module) {
+class SisyphusStates : StateMachineBuilder
+{
+    public SisyphusStates(BossModule module) : base(module)
+    {
         TrivialPhase()
             .ActivateOnEnter<ThunderousMemoryCircle>()
             .ActivateOnEnter<ThunderousMemoryCone>()
@@ -103,4 +119,4 @@ class SisyphusStates : StateMachineBuilder {
 }
 
 [ModuleInfo(Incomplete = true, Contributors = "Equilius", GroupType = BossModuleInfo.GroupType.CFC, GroupID = 1018, NameID = 13703)]
-public class Sisyphus(WorldState ws, Actor primary) : BossModule(ws, primary, new(-227.0f, 37.0f), new ArenaBoundsCircle(40));
+public class Sisyphus(WorldState ws, Actor primary) : BossModule(ws, primary, new(-227, 37), new ArenaBoundsCircle(40));

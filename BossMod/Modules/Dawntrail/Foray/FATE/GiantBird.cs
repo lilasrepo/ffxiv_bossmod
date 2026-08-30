@@ -1,6 +1,7 @@
-namespace BossMod.Modules.Dawntrail.Foray.FATE.GaintBird;
+namespace BossMod.Dawntrail.Foray.FATE.GaintBird;
 
-public enum OID : uint {
+public enum OID : uint
+{
     Boss = 0x46C1,
     Helper = 0x233C,
     Petrifog = 0x46C2, // R1.300, x0 (spawn during fight)
@@ -12,7 +13,8 @@ public enum OID : uint {
     Petrifog6 = 0x481D, // R1.300, x0 (spawn during fight)
 }
 
-public enum AID : uint {
+public enum AID : uint
+{
     AutoAttack = 42900, // Boss->player, no cast, single-target
     Teleport = 44481, // Boss->location, no cast, single-target
 
@@ -21,10 +23,12 @@ public enum AID : uint {
     SphereShatter = 41273, // 46C2/481F/481E/481D/4822/4821/4820->self, 2.0s cast, range 7 circle
 }
 
-class GaleCannon(BossModule module) : Components.StandardAOEs(module, AID.GaleCannon, new AOEShapeRect(40.0f, 5.0f));
+class GaleCannon(BossModule module) : Components.StandardAOEs(module, AID.GaleCannon, new AOEShapeRect(40, 5));
 
-class SphereShatter(BossModule module) : Components.StandardAOEs(module, AID.SphereShatter, new AOEShapeCircle(7.0f)) {
-    public override void AddAIHints(int slot, Actor actor, PartyRolesConfig.Assignment assignment, AIHints hints) {
+class SphereShatter(BossModule module) : Components.StandardAOEs(module, AID.SphereShatter, new AOEShapeCircle(7))
+{
+    public override void AddAIHints(int slot, Actor actor, PartyRolesConfig.Assignment assignment, AIHints hints)
+    {
         base.AddAIHints(slot, actor, assignment, hints);
 
         // This isn't a perfect solution, but the idea is to just keep the player away from the orb radius and direction its moving to prevent
@@ -32,14 +36,17 @@ class SphereShatter(BossModule module) : Components.StandardAOEs(module, AID.Sph
         var petrifogs = WorldState.Actors.Where(a => a.OID is (uint)OID.Petrifog or
             (uint)OID.Petrifog1 or (uint)OID.Petrifog2 or (uint)OID.Petrifog3 or
             (uint)OID.Petrifog4 or (uint)OID.Petrifog5 or (uint)OID.Petrifog6).ToList();
-        foreach (var petrifog in petrifogs.Where(a => !a.IsDead && a.CastInfo == null)) {
-            hints.AddForbiddenZone(ShapeContains.Capsule(petrifog.Position, petrifog.Rotation.ToDirection(), 7.0f, 4.0f), WorldState.FutureTime(5.0f));
+        foreach (var petrifog in petrifogs.Where(a => !a.IsDead && a.CastInfo == null))
+        {
+            hints.AddForbiddenZone(ShapeDistance.Capsule(petrifog.Position, petrifog.Rotation.ToDirection(), 7, 4), WorldState.FutureTime(5));
         }
     }
 }
 
-class GiantBirdStates : StateMachineBuilder {
-    public GiantBirdStates(BossModule module) : base(module) {
+class GiantBirdStates : StateMachineBuilder
+{
+    public GiantBirdStates(BossModule module) : base(module)
+    {
         TrivialPhase()
             .ActivateOnEnter<GaleCannon>()
             .ActivateOnEnter<SphereShatter>();
@@ -47,4 +54,4 @@ class GiantBirdStates : StateMachineBuilder {
 }
 
 [ModuleInfo(Incomplete = true, Contributors = "Equilius", GroupType = BossModuleInfo.GroupType.CFC, GroupID = 1018, NameID = 13739)]
-public class GiantBird(WorldState ws, Actor primary) : BossModule(ws, primary, new(-547.0f, -600.0f), new ArenaBoundsCircle(40));
+public class GiantBird(WorldState ws, Actor primary) : BossModule(ws, primary, new(-547, -600), new ArenaBoundsCircle(40));

@@ -1,12 +1,14 @@
-namespace BossMod.Modules.Dawntrail.Foray.FATE.AdvancedAevis;
+namespace BossMod.Dawntrail.Foray.FATE.AdvancedAevis;
 
-public enum OID : uint {
+public enum OID : uint
+{
     Boss = 0x4737,
     Helper = 0x233C,
     AdvancedAevis = 0x4738, // R0.500, x0 (spawn during fight)
 }
 
-public enum AID : uint {
+public enum AID : uint
+{
     AutoAttack = 42005, // Boss->player, no cast, single-target
     Teleport = 41995, // Boss->location, no cast, single-target
 
@@ -37,50 +39,59 @@ public enum AID : uint {
     QuarryLake = 42003, // AdvancedAevis->location, 5.0s cast, range 40 circle
 }
 
-class ZombieScales(BossModule module) : Components.GroupedAOEs(module, [AID.ZombieScales, AID.ZombieScales1], new AOEShapeCone(40.0f, 22.5f.Degrees()), 4, true);
+class ZombieScales(BossModule module) : Components.GroupedAOEs(module, [AID.ZombieScales, AID.ZombieScales1], new AOEShapeCone(40, 22.5f.Degrees()), 4, true);
 class AeroII(BossModule module) : Components.StandardAOEs(module, AID.AeroII, 4f);
 class ZombieBreath(BossModule module) : Components.StandardAOEs(module, AID.ZombieBreath, new AOEShapeCone(40f, 90.Degrees()));
 class BreathWing(BossModule module) : Components.RaidwideCast(module, AID.BreathWing);
 class QuarryLake(BossModule module) : Components.CastGaze(module, AID.QuarryLake);
 
-class TripleFlight(BossModule module) : Components.GenericAOEs(module) {
-    private List<AOEInstance> aoes = [];
+class TripleFlight(BossModule module) : Components.GenericAOEs(module)
+{
+    private readonly List<AOEInstance> aoes = [];
 
-    public override void OnCastStarted(Actor caster, ActorCastInfo spell) {
-        if (spell.Action.ID == (uint)AID.TripleFlight) {
-            aoes.Add(new(new AOEShapeDonut(10.0f, 20.0f), spell.LocXZ, spell.Rotation, Module.CastFinishAt(spell)));
-            aoes.Add(new(new AOEShapeCircle(10.0f), spell.LocXZ, spell.Rotation, Module.CastFinishAt(spell, 2.1f), Risky: false));
-            aoes.Add(new(new AOEShapeRect(40.0f, 5.0f, 40.0f), spell.LocXZ, spell.Rotation, Module.CastFinishAt(spell, 4.2f), Risky: false));
+    public override void OnCastStarted(Actor caster, ActorCastInfo spell)
+    {
+        if (spell.Action.ID == (uint)AID.TripleFlight)
+        {
+            aoes.Add(new(new AOEShapeDonut(10, 20), spell.LocXZ, spell.Rotation, Module.CastFinishAt(spell)));
+            aoes.Add(new(new AOEShapeCircle(10), spell.LocXZ, spell.Rotation, Module.CastFinishAt(spell, 2.1f), Risky: false));
+            aoes.Add(new(new AOEShapeRect(40, 5, 40), spell.LocXZ, spell.Rotation, Module.CastFinishAt(spell, 4.2f), Risky: false));
         }
 
-        if (spell.Action.ID == (uint)AID.Cyclone) {
-            aoes.Add(new(new AOEShapeCircle(10.0f), spell.LocXZ, spell.Rotation, Module.CastFinishAt(spell), Risky: false));
-            aoes.Add(new(new AOEShapeDonut(10.0f, 20.0f), spell.LocXZ, spell.Rotation, Module.CastFinishAt(spell, 2.1f)));
-            aoes.Add(new(new AOEShapeRect(40.0f, 5.0f, 40.0f), spell.LocXZ, spell.Rotation, Module.CastFinishAt(spell, 4.2f), Risky: false));
+        if (spell.Action.ID == (uint)AID.Cyclone)
+        {
+            aoes.Add(new(new AOEShapeCircle(10), spell.LocXZ, spell.Rotation, Module.CastFinishAt(spell), Risky: false));
+            aoes.Add(new(new AOEShapeDonut(10, 20), spell.LocXZ, spell.Rotation, Module.CastFinishAt(spell, 2.1f)));
+            aoes.Add(new(new AOEShapeRect(40, 5, 40), spell.LocXZ, spell.Rotation, Module.CastFinishAt(spell, 4.2f), Risky: false));
         }
     }
 
-    public override void OnEventCast(Actor caster, ActorCastEvent spell) {
-        if (spell.Action.ID == (uint)AID.TripleFlight || spell.Action.ID == (uint)AID.Cyclone ||
-            spell.Action.ID == (uint)AID.CyclonicRing || spell.Action.ID == (uint)AID.Cyclone1 ||
-            spell.Action.ID == (uint)AID.FlashFoehn) {
-            if (aoes.Count > 0) {
+    public override void OnEventCast(Actor caster, ActorCastEvent spell)
+    {
+        if ((AID)spell.Action.ID is AID.TripleFlight or AID.Cyclone or AID.CyclonicRing or AID.Cyclone1 or AID.FlashFoehn)
+        {
+            if (aoes.Count > 0)
+            {
                 aoes.RemoveAt(0);
             }
         }
     }
 
-    public override IEnumerable<AOEInstance> ActiveAOEs(int slot, Actor actor) {
+    public override IEnumerable<AOEInstance> ActiveAOEs(int slot, Actor actor)
+    {
         int show = 0;
-        foreach (var aoe in aoes.Take(2)) {
+        foreach (var aoe in aoes.Take(2))
+        {
             yield return aoe with { Color = show == 0 ? ArenaColor.Danger : ArenaColor.AOE, Risky = show == 0 };
             show++;
         }
     }
 }
 
-class AdvancedAevisStates : StateMachineBuilder {
-    public AdvancedAevisStates(BossModule module) : base(module) {
+class AdvancedAevisStates : StateMachineBuilder
+{
+    public AdvancedAevisStates(BossModule module) : base(module)
+    {
         TrivialPhase()
             .ActivateOnEnter<ZombieScales>()
             .ActivateOnEnter<AeroII>()
@@ -92,4 +103,4 @@ class AdvancedAevisStates : StateMachineBuilder {
 }
 
 [ModuleInfo(Incomplete = true, Contributors = "Equilius", GroupType = BossModuleInfo.GroupType.CFC, GroupID = 1018, NameID = 13704)]
-public class AdvancedAevis(WorldState ws, Actor primary) : BossModule(ws, primary, new(-48.0f, -320.0f), new ArenaBoundsCircle(40));
+public class AdvancedAevis(WorldState ws, Actor primary) : BossModule(ws, primary, new(-48, -320), new ArenaBoundsCircle(40));

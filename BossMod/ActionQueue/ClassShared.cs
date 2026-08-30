@@ -1,4 +1,4 @@
-﻿using BossMod.Data;
+using BossMod.Data;
 
 namespace BossMod.ClassShared;
 
@@ -337,6 +337,23 @@ public sealed class Definitions : Defs
         };
 
         d.Spell(PhantomID.OccultFeatherfoot)!.AllowExecute = ActionPredicate.AllowDashFixed(15);
-        d.Spell(PhantomID.OccultFeatherfoot)!.TransformAngle = (ws, _, _, _) => _config.AlignDashToCamera ? ws.Client.CameraAzimuth + 180.Degrees() : null;
+        d.Spell(PhantomID.OccultFeatherfoot)!.TransformAngle = (ws, _, _) => _config.AlignDashToCamera ? ws.Client.CameraAzimuth + 180.Degrees() : null;
+
+        // porting-note(api13): d.Spell() is a GetValueOrDefault, so `!` is a lie whenever the
+        // action row is absent -- and this runs in ActionDefinitions' STATIC constructor, so the
+        // NRE surfaces as "The type initializer for 'BossMod.ActionDefinitions' threw" and the
+        // whole plugin fails to load. StepForth and OccultJump arrived with the 2026-08-30
+        // refresh and are post-7.2 Occult Crescent actions that TC's 7.20 client does not have;
+        // PhantomKick and OccultFeatherfoot above DO resolve, which is why only these two are
+        // guarded. Keep the guards until TC's game version passes the patch that adds them.
+        if (d.Spell(PhantomID.StepForth) is { } stepForth)
+        {
+            stepForth.AllowExecute = ActionPredicate.AllowDashToPosition;
+            stepForth.TransformAngle = (ws, _, _) => _config.AlignDashToCamera ? ws.Client.CameraAzimuth + 180.Degrees() : null;
+        }
+
+        // Occult Jump has a ridiculous position lock of almost 2.5s
+        if (d.Spell(PhantomID.OccultJump) is { } occultJump)
+            occultJump.AllowExecute = (_, player, _, hints) => !hints.ForbiddenZones.Any(z => z.shape.Distance(player.Position) < 0);
     }
 }
