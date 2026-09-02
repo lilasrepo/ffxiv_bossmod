@@ -29,7 +29,8 @@ public sealed class Service
     // TODO: get rid of stuff below in favour of CS
     [PluginService] public static IClientState ClientState { get; private set; }
     [PluginService] public static IObjectTable ObjectTable { get; private set; }
-    // [PluginService] public static IPlayerState PlayerState { get; private set; } // TODO(api12): API15-only service
+    // porting-note(api13): restored 2026-09-02 — Dalamud.Plugin.Services.IPlayerState exists in api13
+    [PluginService] public static IPlayerState PlayerState { get; private set; }
     [PluginService] public static ITargetManager TargetManager { get; private set; }
     [PluginService] public static IKeyState KeyState { get; private set; }
     [PluginService] public static INotificationManager Notifications { get; private set; }
