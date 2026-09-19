@@ -46,3 +46,19 @@ BossMod/Replay/ReplayManagementWindow.cs
 # upstream's ObstacleMapManager/DeveloperConfig/ObstacleMapDatabase storage refactor but keeps this
 # file minimal so the duplicate can't return. See FORWARD_PORT_REFERENCE.md bossmod entry.
 BossMod/Replay/ReplayHistory.cs
+# Pinned 2026-09-19 (pack split, upstream 0d922f7a): upstream builds BossMod.Autorotation / BossMod.Modules /
+# BossMod.Ultimate with the Dalamud project SDK (net10) + a sibling FFXIVClientStructs checkout
+# (Common.targets LocalCS=true) + a ProjectReference back to BossMod.csproj. TC rewrites all five build files
+# for Microsoft.NET.Sdk / net9 / TC_ok/_dalamud_api13 and a HintPath reference to the built BossMod.dll
+# (BossMod.csproj's TcBuildPacks target builds them). Take-theirs would reintroduce the net10 SDK.
+Common.targets
+Module.targets
+BossMod.Autorotation/BossMod.Autorotation.csproj
+BossMod.Modules/BossMod.Modules.csproj
+BossMod.Ultimate/BossMod.Ultimate.csproj
+# Auto-promoted by plugin_update on 2026-09-19
+BossMod/Replay/Visualization/IPCList.cs
+# Pinned 2026-09-19: the DalamudPackager NuGet imports a project-local DalamudPackager.targets INSTEAD of its default
+# targets; upstream's only packages in Publish, so Release builds staged without a manifest (TC_plugin/ffxiv_bossmod).
+# TC's version packages after TcBuildPacks on Build.
+BossMod/DalamudPackager.targets

@@ -7,6 +7,7 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.Fate;
 using System.IO;
+using BossMod.ReplayAnalysis;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -59,7 +60,10 @@ public sealed class Plugin : IDalamudPlugin
         var gameVersion = dalamudStartInfo?.GameVersion?.ToString() ?? "unknown";
 
 #if LOCAL_CS
-        InteropGenerator.Runtime.Resolver.GetInstance.Setup(sigScanner.SearchBase, gameVersion, new(dalamud.ConfigDirectory.FullName + "/cs.json"));
+        if (sigScanner == null) // nonexistent in mock environment
+            return;
+
+        InteropGenerator.Runtime.Resolver.GetInstance.Setup(sigScanner.SearchBase, dataManager.GameData.Repositories["ffxiv"].Version, new(dalamud.ConfigDirectory.FullName + "/cs.json"));
         FFXIVClientStructs.Interop.Generated.Addresses.Register();
         InteropGenerator.Runtime.Resolver.GetInstance.Resolve();
 #endif
@@ -73,18 +77,26 @@ public sealed class Plugin : IDalamudPlugin
         //Service.Device = pluginInterface.UiBuilder.Device;
         Service.Condition.ConditionChange += OnConditionChanged;
         MultiboxUnlock.Exec();
-        Camera.Instance = new();
 
-        Service.Config.Initialize();
-        Service.Config.LoadFromFile(dalamud.ConfigFile);
+        // porting-note: upstream (TickService) constructs ConfigRoot from the file and seeds every
+        // registry with the main assembly before the pack loader adds the module packs.
+        Service.Config = new(dalamud.ConfigFile);
+        Service.Config.Reload([], [Assembly.GetExecutingAssembly()]);
+        BossModuleRegistry.Reload([], [Assembly.GetExecutingAssembly()]);
+        RotationModuleRegistry.Reload([], [Assembly.GetExecutingAssembly()]);
+        ZoneModuleRegistry.Reload([], [Assembly.GetExecutingAssembly()]);
+        AnalyzerRegistry.Reload([], [Assembly.GetExecutingAssembly()]);
         Service.Config.Modified.Subscribe(() => Task.Run(() => Service.Config.SaveToFile(dalamud.ConfigFile)));
 
         ActionDefinitions.Instance.UnlockCheck = QuestUnlocked; // ensure action definitions are initialized and set unlock check functor (we don't really store the quest progress in clientstate, for now at least)
 
+        MigratePlans(dalamud.ConfigDirectory.FullName);
+        CopyLibraries(dalamud.AssemblyLocation);
+
         _packs = new();
 
         var qpf = (ulong)FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->PerformanceCounterFrequency;
-        _rotationDB = new(new(dalamud.ConfigDirectory.FullName + "/autorot"), new(dalamud.AssemblyLocation.DirectoryName! + "/DefaultRotationPresets.json"));
+        _rotationDB = new(new(Path.Join(GetStorageDir(), "autorot")), new(dalamud.AssemblyLocation.DirectoryName! + "/DefaultRotationPresets.json"), _packs);
         _ws = new(qpf, gameVersion);
         _hints = new();
         _bossmod = new(_ws);
@@ -102,8 +114,8 @@ public sealed class Plugin : IDalamudPlugin
 
         var replayDir = new DirectoryInfo(dalamud.ConfigDirectory.FullName + "/replays");
         _configUI = new(Service.Config, _ws, replayDir, _rotationDB);
-        _wndBossmod = new(_bossmod, _zonemod);
-        _wndBossmodHints = new(_bossmod, _zonemod);
+        _wndBossmod = new(_bossmod, _zonemod, _hints);
+        _wndBossmodHints = new(_bossmod, _zonemod, _hints);
         _wndZone = new(_zonemod);
         _wndReplay = new(_ws, _bossmod, _rotationDB, replayDir);
         _wndRotation = new(_rotation, _amex, () => OpenConfigUI("Autorotation Presets"));
@@ -130,7 +142,7 @@ public sealed class Plugin : IDalamudPlugin
         _wndBossmodHints.Dispose();
         _wndBossmod.Dispose();
         _configUI.Dispose();
-        _packs.Dispose();
+        _rotationDB.Dispose();
         _mbox.Dispose();
         _slashCmd.Dispose();
         _dtr.Dispose();
@@ -143,6 +155,56 @@ public sealed class Plugin : IDalamudPlugin
         _hintsBuilder.Dispose();
         _zonemod.Dispose();
         _bossmod.Dispose();
+        _packs.Dispose();
+    }
+
+    // upstream TickService.MigratePlans: autorot plans moved from the Dalamud config dir to %AppData%bm
+    private static void MigratePlans(string pluginConfigDir)
+    {
+        var source = Path.Join(pluginConfigDir, "autorot");
+
+        // no autorot dir means fresh install
+        if (!Path.Exists(source))
+        {
+            Service.PluginLog.Verbose($"[Migrator] No configs, nothing to do.");
+            return;
+        }
+
+        var destination = Path.Join(GetStorageDir(), "autorot");
+
+        if (File.Exists(Path.Join(destination, ".migrate-ok")))
+        {
+            Service.PluginLog.Verbose($"[Migrator] Nothing to do.");
+            return;
+        }
+
+        Utils.CopyRecursive(source, destination);
+
+        File.Create(Path.Join(destination, ".migrate-ok"));
+
+        Service.Log($"[Migrator] Done.");
+    }
+
+    // upstream TickService.CopyLibraries: seed the pack directory from the plugin folder on every load
+    private static void CopyLibraries(FileInfo assemblyLocation)
+    {
+        var modulesDir = Path.Join(GetStorageDir(), "modules");
+        var assemblyDir = assemblyLocation.DirectoryName!;
+
+        Directory.CreateDirectory(modulesDir);
+
+        void copy(string filename)
+        {
+            var src = Path.Join(assemblyDir, filename);
+            if (File.Exists(src))
+                File.Copy(src, Path.Join(modulesDir, filename), true);
+            else
+                Service.PluginLog.Verbose($"{filename} missing from assembly directory, is this a dev build?");
+        }
+
+        copy("BossMod.Autorotation.dll");
+        copy("BossMod.Modules.dll");
+        copy("BossMod.Ultimate.dll");
     }
 
     private void RegisterSlashCommands()
@@ -317,7 +379,7 @@ public sealed class Plugin : IDalamudPlugin
         var moveImminent = _movementOverride.IsMoveRequested() && (!_amex.Config.PreventMovingWhileCasting || _movementOverride.IsForceUnblocked());
 
         _dtr.Update();
-        Camera.Instance?.Update();
+        Camera.Instance()?.Update();
         _wsSync.Update(_prevUpdateTime);
         _bossmod.Update();
         _zonemod.ActiveModule?.Update();
@@ -335,7 +397,7 @@ public sealed class Plugin : IDalamudPlugin
 
         ExecuteHints();
 
-        Camera.Instance?.DrawWorldPrimitives();
+        Camera.Instance()?.DrawWorldPrimitives();
         _prevUpdateTime = DateTime.Now - tsStart;
     }
 
@@ -462,4 +524,15 @@ public sealed class Plugin : IDalamudPlugin
     {
         Service.Log($"Condition change: {flag}={value}");
     }
+
+    // [TC] "vbm-tc", NOT upstream's "vbm". The path is fixed, not launcher-scoped, so the international
+    // BossMod (%AppData%\XIVLauncher\installedPlugins\BossMod) shares it with this one. Since the
+    // 0d922f7a pack split both builds also drop their own BossMod.Autorotation/.Modules/.Ultimate.dll into
+    // <storage>/modules on every load, so they overwrite each other: whichever client loaded last wins, and
+    // the other one then reads DLLs built for the wrong runtime. PackLoader catches the
+    // BadImageFormatException and logs a warning, so the failure is SILENT -- no boss modules, no
+    // autorotation, no error. Separate dirs keep both installs working. autorot plans / obstacle maps /
+    // replay history are per-dir too; the 2026-09-19 switch copied the existing ones over.
+    // The ONLY definition of this path -- ReplayHistory.GetStorageDir() delegates here. GATE-asserted.
+    public static string GetStorageDir() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "vbm-tc");
 }

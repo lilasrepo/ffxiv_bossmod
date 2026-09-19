@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- TC port: upstream uses the Dalamud project SDK (net10); its implicit props/refs come from ..\Common.targets via Module.targets -->
+  <PropertyGroup>
+    <RootNamespace>BossMod</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DalamudLibPath>$(MSBuildThisFileDirectory)..\..\..\TC_ok\_dalamud_api13\</DalamudLibPath>
+  </PropertyGroup>
+
+
+  <Import Project="..\Module.targets" />
+</Project>

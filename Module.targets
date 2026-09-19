@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <Import Project="Common.targets" />
+
+  <PropertyGroup>
+    <Use_DalamudPackager>false</Use_DalamudPackager>
+  </PropertyGroup>
+
+  <!-- TC port: upstream uses a ProjectReference to BossMod.csproj here. Our BossMod.csproj builds the pack
+       projects from its own AfterBuild target (TcBuildPacks), so a ProjectReference back to it would be a
+       circular build; reference the freshly built BossMod.dll instead. -->
+  <ItemGroup>
+    <Reference Include="BossMod">
+      <HintPath>$(MSBuildThisFileDirectory)BossMod\bin\$(Configuration)\BossMod.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
+    <ProjectReference Include="$(MSBuildThisFileDirectory)\CodeAnalysis\CodeAnalysis.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <OutputItemType>Analyzer</OutputItemType>
+      <PrivateAssets>All</PrivateAssets>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Target Name="CopyDll" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+    <Copy
+      SourceFiles="$(OutDir)\$(AssemblyName).dll"
+      DestinationFolder="$(AppData)\vbm\modules" />
+  </Target>
+</Project>

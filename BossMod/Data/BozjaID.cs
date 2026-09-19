@@ -123,9 +123,14 @@ public static class BozjaActionID
     static BozjaActionID()
     {
         var sheet = Service.LuminaSheet<MYCTemporaryItem>()!;
-        for (int i = 0; i < _normalActions.Length; i++)
+        for (var i = 0; i < _normalActions.Length; i++)
         {
-            var row = sheet.GetRow((uint)i);
+            // [TC] BozjaHolsterID.Count comes from upstream's enum while the sheet comes from the
+            // client, so a shorter TC sheet would throw here -- out of a STATIC ctor, i.e. as a
+            // TypeInitializationException that kills every consumer (how the 2026-08-30 ClassShared
+            // bug presented). Leave the tail at its default instead.
+            if (sheet.GetRowOrDefault((uint)i) is not { } row)
+                break;
             _normalActions[i] = new(ActionType.Spell, row.Action.RowId);
             _holsterActions[i] = row.Type == 2 ? _normalActions[i] : SlotFromHolsterAction;
         }

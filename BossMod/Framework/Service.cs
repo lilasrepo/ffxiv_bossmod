@@ -1,5 +1,6 @@
 ﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects;
@@ -15,6 +16,7 @@ public sealed class Service
 {
 #pragma warning disable CS8618
     [PluginService] public static IPluginLog Logger { get; private set; }
+    public static IPluginLog PluginLog => Logger; // upstream (TickService era) name; TC keeps Logger as the injected member
     [PluginService] public static IChatGui ChatGui { get; private set; }
     [PluginService] public static IGameGui GameGui { get; private set; }
     [PluginService] public static IGameConfig GameConfig { get; private set; }
@@ -47,6 +49,8 @@ public sealed class Service
     public static void ChatMessage(string msg) => ChatGui.Print(msg, "VBM");
     public static void ChatError(string msg) => ChatGui.PrintError(msg, "VBM");
 
+    public static void ShowNotification(string msg, NotificationType type = NotificationType.Success) => Notifications?.AddNotification(new() { Content = msg, Type = type });
+
     public static Lumina.GameData LuminaGameData = null!;
     public static Lumina.Excel.ExcelSheet<T>? LuminaSheet<T>() where T : struct, Lumina.Excel.IExcelRow<T> => LuminaGameData.GetExcelSheet<T>();
     public static T? LuminaRow<T>(uint row) where T : struct, Lumina.Excel.IExcelRow<T> => LuminaSheet<T>()?.GetRowOrDefault(row);
@@ -75,7 +79,7 @@ public sealed class Service
     public static bool IsUIDev => PluginInterface == null;
     public static bool IsMock;   // upstream's DalaMock harness flag; always false here
 
-    public static readonly ConfigRoot Config = new();
+    public static ConfigRoot Config = null!; // constructed in Plugin() from the config file (upstream: TickService)
 
     //public static SharpDX.Direct3D11.Device? Device = null;
 }

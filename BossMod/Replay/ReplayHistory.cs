@@ -11,7 +11,9 @@ public class ReplayHistory
 {
     public static DirectoryInfo GetStorageDir()
     {
-        var dir = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "vbm"));
+        // [TC] delegate to Plugin.GetStorageDir() so the storage path has exactly one definition
+        // (upstream repeats the literal here). See the comment there for why TC is not on "vbm".
+        var dir = new DirectoryInfo(Plugin.GetStorageDir());
         if (!dir.Exists)
             dir.Create();
 

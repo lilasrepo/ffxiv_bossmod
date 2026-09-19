@@ -101,7 +101,7 @@ class ClassDefinitions
 
         // add any actions from definitions that weren't found yet
         foreach (var def in ActionDefinitions.Instance.Definitions)
-            if (RegisterAction(def.ID, def.ID.Type == ActionType.Spell ? actionSheet?.GetRow(def.ID.ID) : null, nullOwner, out var data))
+            if (RegisterAction(def.ID, def.ID.Type == ActionType.Spell ? actionSheet?.GetRowOrDefault(def.ID.ID) : null, nullOwner, out var data))
                 data.PotentiallyRemoved = true;
 
         // add any actions observed in replays
@@ -112,7 +112,7 @@ class ClassDefinitions
                 var alock = (int)MathF.Round(a.AnimationLock * 1000);
                 _byLock.GetOrAdd(alock).GetOrAdd(a.ID).Add(new(r, a));
 
-                if (RegisterAction(a.ID, a.ID.Type == ActionType.Spell ? actionSheet?.GetRow(a.ID.ID) : null, nullOwner, out var data))
+                if (RegisterAction(a.ID, a.ID.Type == ActionType.Spell ? actionSheet?.GetRowOrDefault(a.ID.ID) : null, nullOwner, out var data))
                     data.ReplayOnly = true;
 
                 var cast = a.Source.Casts.Find(c => c.ID == a.ID && c.Time.Contains(a.Timestamp));
@@ -478,7 +478,7 @@ class ClassDefinitions
 
         public void Group(string group, IEnumerable<ActionData> actions, bool allowClasses, bool shared = false)
         {
-            bool writtenHeader = false;
+            var writtenHeader = false;
             foreach (var a in actions)
             {
                 if (!writtenHeader)
@@ -582,7 +582,7 @@ class ClassDefinitions
 
         public void Group(string group, IEnumerable<ActionData> actions)
         {
-            bool writtenHeader = false;
+            var writtenHeader = false;
             foreach (var a in actions)
             {
                 if (!writtenHeader)
@@ -644,7 +644,7 @@ class ClassDefinitions
 
     private static string AnimLockString(ActionData action)
     {
-        string resInst = "";
+        var resInst = "";
         if (action.SeenInstant)
         {
             if (action.InstantByAnimLock.Count > 1 || action.InstantByAnimLock.First().Key != 600)

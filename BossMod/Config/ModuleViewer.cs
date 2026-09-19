@@ -35,6 +35,8 @@ public sealed class ModuleViewer : IDisposable
 
     private string _searchText = "";
 
+    private readonly EventSubscriptions _subscriptions;
+
     public ModuleViewer(PlanDatabase? planDB, WorldState ws)
     {
         _planDB = planDB;
@@ -45,47 +47,59 @@ public sealed class ModuleViewer : IDisposable
         _categories = [.. Enum.GetNames<BossModuleInfo.Category>().Take((int)BossModuleInfo.Category.Count).Select(n => (n, defaultIcon))];
 
         var exVersion = Service.LuminaSheet<ExVersion>()!;
-        Customize(BossModuleInfo.Expansion.RealmReborn, 61875, exVersion.GetRow(0).Name);
-        Customize(BossModuleInfo.Expansion.Heavensward, 61876, exVersion.GetRow(1).Name);
-        Customize(BossModuleInfo.Expansion.Stormblood, 61877, exVersion.GetRow(2).Name);
-        Customize(BossModuleInfo.Expansion.Shadowbringers, 61878, exVersion.GetRow(3).Name);
-        Customize(BossModuleInfo.Expansion.Endwalker, 61879, exVersion.GetRow(4).Name);
-        Customize(BossModuleInfo.Expansion.Dawntrail, 61880, exVersion.GetRow(5).Name);
+        // [TC] same reason as the category rows below: an expansion row the client does not have yet
+        // would otherwise throw out of this ctor and take the whole plugin down.
+        string exName(uint row, string fallback) => exVersion.GetRowOrDefault(row)?.Name.ToString() ?? fallback;
+        Customize(BossModuleInfo.Expansion.RealmReborn, 61875, exName(0, "A Realm Reborn"));
+        Customize(BossModuleInfo.Expansion.Heavensward, 61876, exName(1, "Heavensward"));
+        Customize(BossModuleInfo.Expansion.Stormblood, 61877, exName(2, "Stormblood"));
+        Customize(BossModuleInfo.Expansion.Shadowbringers, 61878, exName(3, "Shadowbringers"));
+        Customize(BossModuleInfo.Expansion.Endwalker, 61879, exName(4, "Endwalker"));
+        Customize(BossModuleInfo.Expansion.Dawntrail, 61880, exName(5, "Dawntrail"));
         Customize(BossModuleInfo.Expansion.Global, 61875, "Global");
 
         var contentType = Service.LuminaSheet<ContentType>()!;
-        Customize(BossModuleInfo.Category.Uncategorized, contentType.GetRow(1), "Uncategorized");
-        Customize(BossModuleInfo.Category.Dungeon, contentType.GetRow(2));
-        Customize(BossModuleInfo.Category.Trial, contentType.GetRow(4), "Normal Trials");
-        Customize(BossModuleInfo.Category.Extreme, contentType.GetRow(4), "Extreme Trials");
-        Customize(BossModuleInfo.Category.Raid, contentType.GetRow(5), "Normal Raids");
-        Customize(BossModuleInfo.Category.Savage, contentType.GetRow(5), "Savage Raids");
-        Customize(BossModuleInfo.Category.Ultimate, contentType.GetRow(28), "Ultimate Raids");
-        Customize(BossModuleInfo.Category.Unreal, contentType.GetRow(4), "Unreal Trials");
-        Customize(BossModuleInfo.Category.Alliance, contentType.GetRow(5), "Alliance Raids");
-        Customize(BossModuleInfo.Category.Chaotic, contentType.GetRow(37));
-        Customize(BossModuleInfo.Category.PVP, contentType.GetRow(6));
-        Customize(BossModuleInfo.Category.Quest, contentType.GetRow(7));
-        Customize(BossModuleInfo.Category.FATE, contentType.GetRow(8));
-        Customize(BossModuleInfo.Category.TreasureHunt, contentType.GetRow(9));
-        Customize(BossModuleInfo.Category.GoldSaucer, contentType.GetRow(19));
-        Customize(BossModuleInfo.Category.DeepDungeon, contentType.GetRow(21));
-        Customize(BossModuleInfo.Category.Quantum, contentType.GetRow(21), "Quantum");
-        Customize(BossModuleInfo.Category.Variant, contentType.GetRow(30), "Variant Dungeons");
-        Customize(BossModuleInfo.Category.Criterion, contentType.GetRow(30), "Criterion Dungeons");
-        Customize(BossModuleInfo.Category.HallOfTheNovice, contentType.GetRow(20), "Hall of the Novice");
+        Customize(BossModuleInfo.Category.Uncategorized, contentType.GetRowOrDefault(1), "Uncategorized");
+        Customize(BossModuleInfo.Category.Dungeon, contentType.GetRowOrDefault(2));
+        Customize(BossModuleInfo.Category.Trial, contentType.GetRowOrDefault(4), "Normal Trials");
+        Customize(BossModuleInfo.Category.Extreme, contentType.GetRowOrDefault(4), "Extreme Trials");
+        Customize(BossModuleInfo.Category.Raid, contentType.GetRowOrDefault(5), "Normal Raids");
+        Customize(BossModuleInfo.Category.Savage, contentType.GetRowOrDefault(5), "Savage Raids");
+        Customize(BossModuleInfo.Category.Ultimate, contentType.GetRowOrDefault(28), "Ultimate Raids");
+        Customize(BossModuleInfo.Category.Unreal, contentType.GetRowOrDefault(4), "Unreal Trials");
+        Customize(BossModuleInfo.Category.Alliance, contentType.GetRowOrDefault(5), "Alliance Raids");
+        Customize(BossModuleInfo.Category.Chaotic, contentType.GetRowOrDefault(37));
+        Customize(BossModuleInfo.Category.PVP, contentType.GetRowOrDefault(6));
+        Customize(BossModuleInfo.Category.Quest, contentType.GetRowOrDefault(7));
+        Customize(BossModuleInfo.Category.FATE, contentType.GetRowOrDefault(8));
+        Customize(BossModuleInfo.Category.TreasureHunt, contentType.GetRowOrDefault(9));
+        Customize(BossModuleInfo.Category.GoldSaucer, contentType.GetRowOrDefault(19));
+        Customize(BossModuleInfo.Category.DeepDungeon, contentType.GetRowOrDefault(21));
+        Customize(BossModuleInfo.Category.Quantum, contentType.GetRowOrDefault(21), "Quantum");
+        Customize(BossModuleInfo.Category.Variant, contentType.GetRowOrDefault(30), "Variant Dungeons");
+        Customize(BossModuleInfo.Category.Criterion, contentType.GetRowOrDefault(30), "Criterion Dungeons");
+        Customize(BossModuleInfo.Category.HallOfTheNovice, contentType.GetRowOrDefault(20), "Hall of the Novice");
 
         var playStyle = Service.LuminaSheet<CharaCardPlayStyle>()!;
-        Customize(BossModuleInfo.Category.Foray, playStyle.GetRow(6));
-        Customize(BossModuleInfo.Category.MaskedCarnivale, playStyle.GetRow(8));
-        Customize(BossModuleInfo.Category.Hunt, playStyle.GetRow(10));
+        Customize(BossModuleInfo.Category.Foray, playStyle.GetRowOrDefault(6));
+        Customize(BossModuleInfo.Category.MaskedCarnivale, playStyle.GetRowOrDefault(8));
+        Customize(BossModuleInfo.Category.Crucible, playStyle.GetRowOrDefault(35));
+        Customize(BossModuleInfo.Category.Hunt, playStyle.GetRowOrDefault(10));
 
-        _iconFATE = contentType.GetRow(8).Icon;
-        _iconHunt = (uint)playStyle.GetRow(10).Icon;
+        _iconFATE = contentType.GetRowOrDefault(8)?.Icon ?? defaultIcon;
+        _iconHunt = (uint?)playStyle.GetRowOrDefault(10)?.Icon ?? defaultIcon;
 
         _groups = new List<ModuleGroup>[(int)BossModuleInfo.Expansion.Count, (int)BossModuleInfo.Category.Count];
-        for (int i = 0; i < (int)BossModuleInfo.Expansion.Count; ++i)
-            for (int j = 0; j < (int)BossModuleInfo.Category.Count; ++j)
+
+        _subscriptions = new(
+            BossModuleRegistry.Modified.ExecuteAndSubscribe(Rebuild)
+        );
+    }
+
+    private void Rebuild()
+    {
+        for (var i = 0; i < (int)BossModuleInfo.Expansion.Count; ++i)
+            for (var j = 0; j < (int)BossModuleInfo.Category.Count; ++j)
                 _groups[i, j] = [];
 
         foreach (var info in BossModuleRegistry.RegisteredModules.Values)
@@ -135,6 +149,7 @@ public sealed class ModuleViewer : IDisposable
 
     public void Dispose()
     {
+        _subscriptions.Dispose();
     }
 
     public void Draw(UITree tree, WorldState ws)
@@ -326,11 +341,11 @@ public sealed class ModuleViewer : IDisposable
 
         var modified = false;
 
-        for (int i = 0; i < (int)BossModuleInfo.Expansion.Count; ++i)
+        for (var i = 0; i < (int)BossModuleInfo.Expansion.Count; ++i)
         {
             if (_filterExpansions[i])
                 continue;
-            for (int j = 0; j < (int)BossModuleInfo.Category.Count; ++j)
+            for (var j = 0; j < (int)BossModuleInfo.Category.Count; ++j)
             {
                 if (_filterCategories[j])
                     continue;
@@ -391,8 +406,24 @@ public sealed class ModuleViewer : IDisposable
 
     private void Customize(BossModuleInfo.Expansion expansion, uint iconId, ReadOnlySeString name) => _expansions[(int)expansion] = (name.ToString(), iconId);
     private void Customize(BossModuleInfo.Category category, uint iconId, ReadOnlySeString name) => _categories[(int)category] = (name.ToString(), iconId);
-    private void Customize(BossModuleInfo.Category category, ContentType ct, string? name = null) => Customize(category, ct.Icon, name ?? ct.Name);
-    private void Customize(BossModuleInfo.Category category, CharaCardPlayStyle ps) => Customize(category, (uint)ps.Icon, ps.Name);
+    // [TC] These take a NULLABLE row. Every id below is a per-content-patch row and the plugin tracks
+    // international HEAD while TC runs an older client, so some of them simply do not exist here --
+    // CharaCardPlayStyle row 35 (Crucible, game 7.5) is the one that surfaced, on TC game 7.20.
+    // Lumina's GetRow() throws ArgumentOutOfRangeException for a missing row, and this runs from the
+    // ModuleViewer ctor, so ONE absent row killed the whole plugin at load for what is only a tab
+    // label and icon. A missing row now leaves the category on its default name/icon.
+    private void Customize(BossModuleInfo.Category category, ContentType? ct, string? name = null)
+    {
+        if (ct is { } c)
+            Customize(category, c.Icon, name ?? c.Name);
+        else if (name != null)
+            _categories[(int)category] = (name, _categories[(int)category].icon);
+    }
+    private void Customize(BossModuleInfo.Category category, CharaCardPlayStyle? ps)
+    {
+        if (ps is { } p)
+            Customize(category, (uint)p.Icon, p.Name);
+    }
 
     //private static IDalamudTextureWrap? GetIcon(uint iconId) => iconId != 0 ? Service.Texture?.GetIcon(iconId, Dalamud.Plugin.Services.ITextureProvider.IconFlags.HiRes) : null;
     public static string FixCase(ReadOnlySeString str) => CultureInfo.InvariantCulture.TextInfo.ToTitleCase(str.ToString());
@@ -472,16 +503,56 @@ public sealed class ModuleViewer : IDisposable
             }
         }
 
-        var player = _ws.Party.Player();
-        if (player != null)
+        if (Service.IsMock)
+        {
+            foreach (var cls in supportedClasses)
+                if (ImGui.Selectable($"New plan for {cls}..."))
+                    CreateForClass(info, mplans, cls);
+        }
+        else if (_ws.Party.Player() is { } player)
         {
             if (ImGui.Selectable($"New plan for {player.Class}..."))
-            {
-                var plans = mplans.GetOrAdd(player.Class);
-                var plan = new Plan($"New {plans.Plans.Count + 1}", info.ModuleType) { Guid = Guid.NewGuid().ToString(), Class = player.Class, Level = info.PlanLevel };
-                _planDB.ModifyPlan(null, plan);
-                UIPlanDatabaseEditor.StartPlanEditor(_planDB, plan);
-            }
+                CreateForClass(info, mplans, player.Class);
         }
     }
+
+    private void CreateForClass(BossModuleRegistry.Info info, Dictionary<Class, PlanDatabase.PlanList> mplans, Class cls)
+    {
+        var plans = mplans.GetOrAdd(cls);
+        var plan = new Plan($"New {plans.Plans.Count + 1}", info.ModuleType) { Guid = Guid.NewGuid().ToString(), Class = cls, Level = info.PlanLevel };
+
+        plan.Targeting.Add(new(new StrategyValueTrack())
+        {
+            TimeSinceActivation = -30,
+            WindowLength = 30
+        });
+
+        _planDB!.ModifyPlan(null, plan);
+        UIPlanDatabaseEditor.StartPlanEditor(_planDB, plan);
+    }
+
+    static readonly Class[] supportedClasses = [
+        Class.PLD,
+        Class.MNK,
+        Class.WAR,
+        Class.DRG,
+        Class.BRD,
+        Class.WHM,
+        Class.BLM,
+        Class.SMN,
+        Class.SCH,
+        Class.NIN,
+        Class.MCH,
+        Class.DRK,
+        Class.AST,
+        Class.SAM,
+        Class.RDM,
+        Class.BLU,
+        Class.GNB,
+        Class.DNC,
+        Class.RPR,
+        Class.SGE,
+        Class.VPR,
+        Class.PCT,
+    ];
 }

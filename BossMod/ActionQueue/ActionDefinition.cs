@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using FFXIVClientStructs.FFXIV.Client.Game.Gauge;
+using System.Reflection;
 
 namespace BossMod;
 
@@ -181,6 +182,11 @@ public sealed class ActionDefinitions
     public static readonly ActionID IDPotionInt = new(ActionType.Item, 1049237); // hq grade 3 gemdraught of intelligence
     public static readonly ActionID IDPotionMnd = new(ActionType.Item, 1049238); // hq grade 3 gemdraught of mind
 
+    // TODO: remove later, this is for the ucob project
+    public static readonly ActionID IDClamCake = new(ActionType.Item, 1049247);
+    public static readonly ActionID IDFruitcake = new(ActionType.Item, 1049242);
+    public static readonly ActionID IDPopcorn = new(ActionType.Item, 1049240);
+
     // content specific consumables
     public static readonly ActionID IDPotionSustaining = new(ActionType.Item, 20309);
     public static readonly ActionID IDPotionMax = new(ActionType.Item, 1013637);
@@ -228,6 +234,10 @@ public sealed class ActionDefinitions
         RegisterItem(IDPotionUltra, 1.1f);
         RegisterItem(IDPotionPilgrim, 1.1f);
 
+        RegisterItem(IDClamCake, 2.1f);
+        RegisterItem(IDFruitcake, 2.1f);
+        RegisterItem(IDPopcorn, 2.1f);
+
         RegisterItem(IDMiscItemGreens, 1.1f);
 
         // special content actions - bozja, deep dungeons, etc
@@ -264,18 +274,18 @@ public sealed class ActionDefinitions
 
     // smart targeting utility: return target (if friendly) or other tank (if available) or null (otherwise)
     public static Actor? FindCoTank(WorldState ws, Actor player) => ws.Party.WithoutSlot().Exclude(player).FirstOrDefault(a => a.Role == Role.Tank);
-    public static Actor? SmartTargetCoTank(WorldState ws, Actor player, Actor? primaryTarget, AIHints hints) => SmartTargetFriendly(primaryTarget) ?? FindCoTank(ws, player);
+    public static Actor? SmartTargetCoTank(WorldState ws, Actor player, Actor? primaryTarget, AIHints _) => SmartTargetFriendly(primaryTarget) ?? FindCoTank(ws, player);
 
     // smart targeting utility: return target (if friendly) or any esunable player (if any) or self (otherwise)
     public static Actor? FindEsunaTarget(WorldState ws) => ws.Party.WithoutSlot().FirstOrDefault(p => p.Statuses.Any(s => Utils.StatusIsRemovable(s.ID)));
-    public static Actor? SmartTargetEsunable(WorldState ws, Actor player, Actor? primaryTarget, AIHints hints) => SmartTargetFriendly(primaryTarget) ?? FindEsunaTarget(ws) ?? player;
+    public static Actor? SmartTargetEsunable(WorldState ws, Actor player, Actor? primaryTarget, AIHints _) => SmartTargetFriendly(primaryTarget) ?? FindEsunaTarget(ws) ?? player;
 
     public BitMask SpellAllowedClasses(Lumina.Excel.Sheets.Action data)
     {
         BitMask res = default;
         var cjc = _cjcSheet?.GetRowOrDefault(data.ClassJobCategory.RowId);
         if (cjc != null)
-            for (int i = 1; i < _cjcSheet!.Columns.Count; ++i)
+            for (var i = 1; i < _cjcSheet!.Columns.Count; ++i)
                 res[i - 1] = cjc.Value.ReadBoolColumn(i);
         return res;
     }
@@ -293,7 +303,7 @@ public sealed class ActionDefinitions
     // see ActionManager.CanUseActionOnTarget
     public ActionTargets SpellAllowedTargets(Lumina.Excel.Sheets.Action data)
     {
-        ActionTargets res = ActionTargets.None;
+        var res = ActionTargets.None;
         if (data.CanTargetSelf)
             res |= ActionTargets.Self;
         if (data.CanTargetParty)
@@ -456,7 +466,7 @@ public sealed class ActionDefinitions
     private void RegisterBozja(BozjaHolsterID id)
     {
         var normalAction = BozjaActionID.GetNormal(id);
-        bool isItem = normalAction == BozjaActionID.GetHolster(id);
+        var isItem = normalAction == BozjaActionID.GetHolster(id);
         RegisterSpell(normalAction, instantAnimLock: isItem ? 1.1f : 0.6f);
         if (!isItem)
         {
@@ -489,6 +499,60 @@ public sealed class ActionDefinitions
         _definitions[aid].MaxChargesOverride.SortByReverse(c => c.Level);
     }
     public void RegisterChargeIncreaseTrait<AID, TraitID>(AID aid, TraitID traitId) where AID : Enum where TraitID : Enum => RegisterChargeIncreaseTrait(ActionID.MakeSpell(aid), (uint)(object)traitId);
+
+    public static readonly BeastmasterAffinity[] TrickAffinity = [
+        BeastmasterAffinity.None,
+        BeastmasterAffinity.Rampant,    // cu sith, cone
+        BeastmasterAffinity.Rampant,    // squirrel, line (in both directions)
+        BeastmasterAffinity.Rampant,    // lamb, line
+        BeastmasterAffinity.Durant,   // pugil, cone
+        BeastmasterAffinity.Rampant,    // opo, circle
+        BeastmasterAffinity.Eldritch, // dodo, cone
+        BeastmasterAffinity.Eldritch, // coblyn, ST
+        BeastmasterAffinity.Rampant,    // diremite, ST
+        BeastmasterAffinity.Durant,   // megacrab, circle
+        BeastmasterAffinity.Volant,  // wespe, ST (poison)
+        BeastmasterAffinity.Volant,  // vulture, cone
+        BeastmasterAffinity.Rampant,    // mandragora, ST
+        BeastmasterAffinity.Eldritch, // geshunpest, circle
+        BeastmasterAffinity.Rampant,    // puk, circle
+        BeastmasterAffinity.Durant,   // crab, cone
+        BeastmasterAffinity.Durant,   // mantis, ST
+        BeastmasterAffinity.Eldritch, // slime, ST (lifesteal)
+        BeastmasterAffinity.Durant,   // dullahan, cone
+        BeastmasterAffinity.Volant,  // bat, ST (lifesteal)
+        BeastmasterAffinity.Volant,  // flytrap, cone (poison)
+        BeastmasterAffinity.Durant,   // ziz, cone
+        BeastmasterAffinity.Rampant,    // cactuar, line
+        BeastmasterAffinity.Eldritch, // golem, cone
+        BeastmasterAffinity.Durant,   // apkallu, ST
+        BeastmasterAffinity.Eldritch, // turtle, circle
+        BeastmasterAffinity.Rampant,    // buffalo, cone
+        BeastmasterAffinity.Durant,   // uragnite, cone
+        BeastmasterAffinity.Eldritch, // worm, cone
+        BeastmasterAffinity.Rampant,    // spriggan, cone
+        BeastmasterAffinity.Rampant,    // goob, line
+        BeastmasterAffinity.Eldritch, // gigantoad, circle
+        BeastmasterAffinity.Volant,  // colibri, ST
+        BeastmasterAffinity.Eldritch, // coeurl, ST
+        BeastmasterAffinity.Durant,   // raptor, cone
+        BeastmasterAffinity.Rampant,    // drake, cone
+        BeastmasterAffinity.Eldritch, // treant, circle
+        BeastmasterAffinity.Rampant,    // antling, ST
+        BeastmasterAffinity.Rampant,    // chimera, cone
+        BeastmasterAffinity.Rampant,    // morbol, line
+        BeastmasterAffinity.Volant,  // ghost, cone
+        BeastmasterAffinity.Durant,   // salamander, cone
+        BeastmasterAffinity.Durant,   // cobra, ST (poison)
+        BeastmasterAffinity.Durant,   // hydra, ST
+        BeastmasterAffinity.Volant,  // damselfly, circle
+        BeastmasterAffinity.Eldritch, // rotting goob, ST
+        BeastmasterAffinity.Volant,  // zu, circle
+        BeastmasterAffinity.Durant,   // ice golem, cone
+        BeastmasterAffinity.Durant,   // karlabos, ST
+        BeastmasterAffinity.Eldritch, // rafflesia, circle
+        BeastmasterAffinity.Eldritch, // behemoth, cone
+    ];
 }
 
 public abstract class Defs

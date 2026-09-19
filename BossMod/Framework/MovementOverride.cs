@@ -209,7 +209,7 @@ public sealed unsafe class MovementOverride : BossMod.Services.IMovementOverride
         return (dirH - ForwardMovementDirection(), dirV);
     }
 
-    private Angle ForwardMovementDirection() => _legacyMode ? Camera.Instance!.CameraAzimuth.Radians() + 180.Degrees() : GameObjectManager.Instance()->Objects.IndexSorted[0].Value->Rotation.Radians();
+    private Angle ForwardMovementDirection() => _legacyMode ? Camera.Instance()!.CameraAzimuth.Radians() + 180.Degrees() : GameObjectManager.Instance()->Objects.IndexSorted[0].Value->Rotation.Radians();
 
     private bool PlayerHasMisdirection()
     {

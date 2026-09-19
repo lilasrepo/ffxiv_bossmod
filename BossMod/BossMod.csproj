@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>7.5.0.34</Version>
+    <Version>7.5.6.6</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -69,6 +69,7 @@
       <Private>false</Private>
     </Reference>
     <PackageReference Include="System.Data.Sqlite" Version="2.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.8" />
 
     <ProjectReference Include="..\CodeAnalysis\CodeAnalysis.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
@@ -126,5 +127,23 @@
     </Reference>
   </ItemGroup>
 
+  <!-- TC port: upstream builds the pack libraries only in its Publish target (DalamudPackager.targets, not
+       imported here). Our pipeline stages bin/Release straight from `dotnet build`, so build them here and
+       drop them next to BossMod.dll before the packager zips the output. Plugin.CopyLibraries() then copies
+       them into %AppData%\vbm\modules at load. Module.targets references the built BossMod.dll (no
+       ProjectReference back to this project) so this is not a circular build. -->
+  <ItemGroup>
+    <_TcPackProjects Include="..\BossMod.Autorotation\BossMod.Autorotation.csproj" />
+    <_TcPackProjects Include="..\BossMod.Modules\BossMod.Modules.csproj" />
+    <_TcPackProjects Include="..\BossMod.Ultimate\BossMod.Ultimate.csproj" />
+  </ItemGroup>
+  <Target Name="TcBuildPacks" AfterTargets="Build" BeforeTargets="DefaultDalamudPackagerRelease" Condition="'$(Configuration)' == 'Release'">
+    <!-- restore in a separate evaluation (fresh MSBuildRestoreSessionId) so the build evaluation sees the assets file -->
+    <MSBuild Projects="@(_TcPackProjects)" Targets="Restore" Properties="Configuration=$(Configuration);MSBuildRestoreSessionId=$([System.Guid]::NewGuid())" BuildInParallel="false" />
+    <MSBuild Projects="@(_TcPackProjects)" Targets="Build" Properties="Configuration=$(Configuration)" BuildInParallel="false">
+      <Output TaskParameter="TargetOutputs" ItemName="_TcPackLibs" />
+    </MSBuild>
+    <Copy SourceFiles="@(_TcPackLibs)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>
