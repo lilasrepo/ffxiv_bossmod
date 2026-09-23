@@ -5,8 +5,7 @@
     "BossMod/Framework/Service.cs": 1,
     "BossMod/Framework/WorldStateGameSync.cs": 1,
     "BossMod/Replay/ReplayManagementConfig.cs": 1,
-    "BossMod/Replay/Visualization/OpList.cs": 1,
-    "BossMod/packages.lock.json": 1
+    "BossMod/Replay/Visualization/OpList.cs": 1
   },
   "schema_version": 1
 }

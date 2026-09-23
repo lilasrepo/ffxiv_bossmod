@@ -62,3 +62,5 @@ BossMod/Replay/Visualization/IPCList.cs
 # targets; upstream's only packages in Publish, so Release builds staged without a manifest (TC_plugin/ffxiv_bossmod).
 # TC's version packages after TcBuildPacks on Build.
 BossMod/DalamudPackager.targets
+# Auto-promoted by plugin_update on 2026-09-23
+BossMod/packages.lock.json
