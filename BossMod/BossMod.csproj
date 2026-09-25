@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>7.5.6.900</Version>
+    <Version>7.5.6.901</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -70,6 +70,7 @@
     </Reference>
     <PackageReference Include="System.Data.Sqlite" Version="2.0.2" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.8" />
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
 
     <ProjectReference Include="..\CodeAnalysis\CodeAnalysis.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
@@ -81,6 +82,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Modules\**\*.json" />
     <EmbeddedResource Include="Autorotation\OptionRenames.json" />
+    <EmbeddedResource Include="Data\EnemyBehavior.csv" />
     <EmbeddedResource Include="Pathfinding\ObstacleMaps\*" />
   </ItemGroup>
 
